@@ -1,6 +1,5 @@
 """An AWS Python Pulumi program"""
-import pulumi,json,pulumi_aws as aws 
-
+import pulumi, json , pulumi_aws as aws 
 
 myconfig=pulumi.Config()
 vpc1=aws.ec2.Vpc(
@@ -94,20 +93,14 @@ table1=aws.ec2.RouteTable(
   )
 )
 
-table1link1=aws.ec2.RouteTableAssociation(
-  "table1link1",
-  aws.ec2.RouteTableAssociationArgs(
-    route_table_id=table1.id,
-    subnet_id=pbsubnetsnames[0].id
-  )
-)
-
-table1link2=aws.ec2.RouteTableAssociation(
-  "table1link2",
-  aws.ec2.RouteTableAssociationArgs(
-    route_table_id=table1.id,
-    subnet_id=pbsubnetsnames[1].id
-  )
+pblink_lists1=["table1link1" , "table1link2"]
+for allink1 in range(len(pblink_lists1)):
+    pblink_lists1[allink1]=aws.ec2.RouteTableAssociation(
+         pblink_lists1[allink1],
+        aws.ec2.RouteTableAssociationArgs(
+          route_table_id=table1.id,
+          subnet_id=pbsubnetsnames[allpub].id
+        )
 )
 
 myeips=["eip1" , "eip2"]
@@ -154,20 +147,15 @@ table2=aws.ec2.RouteTable(
   )
 )
 
-table2link1=aws.ec2.RouteTableAssociation(
-  "table2link1",
-  aws.ec2.RouteTableAssociationArgs(
-    route_table_id=table2.id,
-    subnet_id=websubnetsnames[0].id
-  )
-)
-
-table2link2=aws.ec2.RouteTableAssociation(
-  "table2link2",
-  aws.ec2.RouteTableAssociationArgs(
-    route_table_id=table2.id,
-    subnet_id=dbsubnetsnames[0].id
-  )
+wblink_lists1=["table2link1" , "table2link2"]
+subnt2=[websubnetsnames[0].id , dbsubnetsnames[0].id]
+for allink2 in range(len(wblink_lists1)):
+    wblink_lists1[allink2]=aws.ec2.RouteTableAssociation(
+         wblink_lists1[allink2],
+        aws.ec2.RouteTableAssociationArgs(
+          route_table_id=table2.id,
+          subnet_id=subnt2[allink2]
+        )
 )
 
 table3=aws.ec2.RouteTable(
@@ -186,21 +174,15 @@ table3=aws.ec2.RouteTable(
   )
 )
 
-
-
-table3link1=aws.ec2.RouteTableAssociation(
-  "table3link1",
-  aws.ec2.RouteTableAssociationArgs(
-    route_table_id=table3.id,
-    subnet_id=websubnetsnames[1].id
-  )
-)
-table3link2=aws.ec2.RouteTableAssociation(
-  "table3link2",
-  aws.ec2.RouteTableAssociationArgs(
-    route_table_id=table3.id,
-    subnet_id=dbsubnetsnames[1].id
-  )
+dblink_lists1=["table3link1" , "table3link2"]
+subnt3=[websubnetsnames[1].id , dbsubnetsnames[1].id]
+for allink3 in range(len(dblink_lists1)):
+    dblink_lists1[allink3]=aws.ec2.RouteTableAssociation(
+         dblink_lists1[allink3],
+        aws.ec2.RouteTableAssociationArgs(
+          route_table_id=table3.id,
+          subnet_id=subnt3[allink3]
+        )
 )
 
 lbsecurity=aws.ec2.SecurityGroup(
@@ -242,14 +224,8 @@ websecurity=aws.ec2.SecurityGroup(
     vpc_id=vpc1.id,
     ingress=[
       aws.ec2.SecurityGroupIngressArgs(
-        from_port=80,
-        to_port=80,
-        protocol="tcp",
-        security_groups=[lbsecurity.id],
-      ),
-      aws.ec2.SecurityGroupIngressArgs(
-        from_port=443,
-        to_port=443,
+        from_port=1024,
+        to_port=65535,
         protocol="tcp",
         security_groups=[lbsecurity.id],
       ),
@@ -326,7 +302,7 @@ alb1=aws.lb.LoadBalancer(
      load_balancer_type="application",
      name="alb1",
      security_groups=[lbsecurity.id],
-     subnets=[pbsubnetsnames[0].id,pbsubnetsnames[1].id],
+     subnets=[pbsubnetsnames[allpub].id],
      tags={
        "Name" : "alb1"
      },
@@ -791,7 +767,7 @@ scalegrp1=aws.autoscaling.Group(
    "scalegrp1",
    aws.autoscaling.GroupArgs(
      name="scalegrp1",
-     vpc_zone_identifiers=[websubnetsnames[0].id, websubnetsnames[1].id],
+     vpc_zone_identifiers=[websubnetsnames[allweb].id],
      launch_template=aws.autoscaling.GroupLaunchTemplateArgs(
        id=temp1.id,
        version="$Latest"
@@ -924,7 +900,7 @@ traffic_flows=aws.ec2.FlowLog(
   "traffic_flows",
   aws.ec2.FlowLogArgs(
     log_destination_type="cloud-watch-logs",
-    log_destination=cwlogs.arn ,
+    log_destination=cwlogs.arn,
     tags={
       "Name" : "traffic_flows"
     },
@@ -951,7 +927,7 @@ endpointgw1=aws.ec2.VpcEndpoint(
              "s3:GetObject",
              "s3:PutObject"
             ],
-          "Resource": "arn:aws:s3:::mybucketlists/*" ,
+          "Resource": "arn:aws:s3:::mybucketlists/*",
         }
       ]
       }),
@@ -1039,7 +1015,6 @@ dbase=aws.rds.Instance(
   )
 )
 
-
 pulumi.export("publicsubnet1" , value=pbsubnetsnames[0].cidr_block)
 pulumi.export("publicsubnet2" , value=pbsubnetsnames[1].cidr_block)
 
@@ -1048,3 +1023,6 @@ pulumi.export("websubnet2" , value=websubnetsnames[1].cidr_block)
 
 pulumi.export("dbsubnet1" , value=dbsubnetsnames[0].cidr_block)
 pulumi.export("dbsubnet2" , value=dbsubnetsnames[1].cidr_block)
+
+pulumi.export("dbname" , value=dbase.db_name)
+pulumi.export("dbhost", value=dbase.endpoint)
