@@ -84,7 +84,7 @@ table1=aws.ec2.RouteTable(
     vpc_id=vpc1.id , 
     routes=[
        aws.ec2.RouteTableRouteArgs(
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
          gateway_id=intgw1.id
        )
     ],
@@ -144,8 +144,8 @@ table2=aws.ec2.RouteTable(
     vpc_id=vpc1.id ,
     routes=[
        aws.ec2.RouteTableRouteArgs(
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
-         nat_gateway_id=allnat[0].id
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         nat_gateway_id=natlists[0].id
        )
     ],
     tags={
@@ -176,8 +176,8 @@ table3=aws.ec2.RouteTable(
     vpc_id=vpc1.id ,
     routes=[
        aws.ec2.RouteTableRouteArgs(
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
-         nat_gateway_id=allnat[1].id
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         nat_gateway_id=natlists[1].id
        )
     ],
     tags={
@@ -185,6 +185,8 @@ table3=aws.ec2.RouteTable(
     }
   )
 )
+
+
 
 table3link1=aws.ec2.RouteTableAssociation(
   "table3link1",
@@ -211,13 +213,13 @@ lbsecurity=aws.ec2.SecurityGroup(
         from_port=80,
         to_port=80,
         protocol="tcp",
-        cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
       ),
       aws.ec2.SecurityGroupIngressArgs(
         from_port=443,
         to_port=443,
         protocol="tcp",
-        cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
       )
     ],
     egress=[
@@ -225,7 +227,7 @@ lbsecurity=aws.ec2.SecurityGroup(
         from_port=0,
         to_port=0,
         protocol="-1",
-        cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
       )
     ],
     tags={
@@ -257,7 +259,7 @@ websecurity=aws.ec2.SecurityGroup(
         from_port=0,
         to_port=0,
         protocol="-1",
-        cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
       )
     ],
     tags={
@@ -284,7 +286,7 @@ dbsecurity=aws.ec2.SecurityGroup(
         from_port=0,
         to_port=0,
         protocol="-1",
-        cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
       )
     ],
     tags={
@@ -329,8 +331,8 @@ alb1=aws.lb.LoadBalancer(
        "Name" : "alb1"
      },
   )
-
 )
+
 listener1=aws.lb.Listener(
   "listener1",
   aws.lb.ListenerArgs(
@@ -359,12 +361,11 @@ rule1=aws.lb.ListenerRule(
     ],
     conditions=[
        aws.lb.ListenerRuleConditionArgs(
-         http_request_method=[
-           aws.lb.ListenerRuleConditionHttpRequestMethodArgs(
+         http_request_method= aws.lb.ListenerRuleConditionHttpRequestMethodArgs(
               values=["GET","POST"]
-           )]
            )
-         ],
+           )],
+         
     tags={
       "Name" : "rule1"
     }
@@ -392,8 +393,7 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=101,
          action="deny",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
-
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
        ),
         aws.ec2.NetworkAclIngressArgs(
          from_port=80,
@@ -401,8 +401,7 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=200,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
-
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
        ),
         aws.ec2.NetworkAclIngressArgs(
          from_port=443,
@@ -410,8 +409,7 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=300,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
-
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
        ),
        aws.ec2.NetworkAclIngressArgs(
          from_port=1024,
@@ -419,8 +417,7 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=400,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
-
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
        ),
         aws.ec2.NetworkAclIngressArgs(
          from_port=0,
@@ -428,8 +425,7 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=500,
          action="allow",
          protocol="-1",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
-
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
        ),
      ],
      egress=[
@@ -447,7 +443,7 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=101,
          action="deny",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -456,7 +452,7 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=200,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -465,7 +461,7 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=300,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -474,7 +470,7 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=400,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -483,28 +479,23 @@ pbnacl1=aws.ec2.NetworkAcl(
          rule_no=500,
          action="allow",
          protocol="-1",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
      ]
    )
 )
 
-pbnacl1_link1=aws.ec2.NetworkAclAssociation(
-  "pbnacl1_link1",
-  aws.ec2.NetworkAclAssociationArgs(
-    network_acl_id=pbnacl1.id,
-    subnet_id=pbsubnetsnames[0].id
-  )
+pbnacls=["pbnacl1_link1","pbnacl1_link2" ]
+for allpbnacls in range(len(pbnacls)):
+    pbnacls[allpbnacls]=aws.ec2.NetworkAclAssociation(
+                          pbnacls[allpbnacls],  
+                          aws.ec2.NetworkAclAssociationArgs(
+                           network_acl_id=pbnacl1.id,
+                           subnet_id=pbsubnetsnames[allpub].id 
+                        )
 )
 
-pbnacl1_link2=aws.ec2.NetworkAclAssociation(
-  "pbnacl1_link2",
-  aws.ec2.NetworkAclAssociationArgs(
-    network_acl_id=pbnacl1.id,
-    subnet_id=pbsubnetsnames[1].id
-  )
-)
 
 webnacl1=aws.ec2.NetworkAcl(
    "webnacl1",
@@ -528,7 +519,7 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=101,
          action="deny",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
         aws.ec2.NetworkAclIngressArgs(
@@ -537,7 +528,7 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=200,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
         aws.ec2.NetworkAclIngressArgs(
@@ -546,7 +537,7 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=300,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclIngressArgs(
@@ -555,7 +546,7 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=400,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
         aws.ec2.NetworkAclIngressArgs(
@@ -564,7 +555,7 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=500,
          action="allow",
          protocol="-1",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
      ],
@@ -583,7 +574,7 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=101,
          action="deny",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -592,7 +583,7 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=200,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -601,7 +592,7 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=300,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -610,7 +601,7 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=400,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -619,26 +610,21 @@ webnacl1=aws.ec2.NetworkAcl(
          rule_no=500,
          action="allow",
          protocol="-1",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
      ]
    )
 )
 
-webnacl1_link1=aws.ec2.NetworkAclAssociation(
-  "webnacl1_link1",
-  aws.ec2.NetworkAclAssociationArgs(
-    network_acl_id=webnacl1.id,
-    subnet_id=websubnetsnames[0].id
-  )
-)
-webnacl1_link2=aws.ec2.NetworkAclAssociation(
-  "webnacl1_link2",
-  aws.ec2.NetworkAclAssociationArgs(
-    network_acl_id=webnacl1.id,
-    subnet_id=websubnetsnames[1].id
-  )
+webnacls=["webnacl1_link1","webnacl1_link2" ]
+for allwbnacls in range(len(webnacls)):
+    webnacls[allwbnacls]=aws.ec2.NetworkAclAssociation(
+                           webnacls[allwbnacls],  
+                           aws.ec2.NetworkAclAssociationArgs(
+                           network_acl_id=webnacl1.id,
+                           subnet_id=websubnetsnames[allweb].id
+                        )
 )
 
 dbnacl1=aws.ec2.NetworkAcl(
@@ -663,7 +649,7 @@ dbnacl1=aws.ec2.NetworkAcl(
          rule_no=101,
          action="deny",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclIngressArgs(
@@ -680,7 +666,7 @@ dbnacl1=aws.ec2.NetworkAcl(
          rule_no=300,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
         aws.ec2.NetworkAclIngressArgs(
@@ -689,7 +675,7 @@ dbnacl1=aws.ec2.NetworkAcl(
          rule_no=400,
          action="allow",
          protocol="-1",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
      ],
@@ -708,7 +694,7 @@ dbnacl1=aws.ec2.NetworkAcl(
          rule_no=101,
          action="deny",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -725,7 +711,7 @@ dbnacl1=aws.ec2.NetworkAcl(
          rule_no=300,
          action="allow",
          protocol="tcp",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -734,27 +720,22 @@ dbnacl1=aws.ec2.NetworkAcl(
          rule_no=400,
          action="allow",
          protocol="-1",
-         cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
+         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
 
        ),
      ]
    )
 )
 
-dbnacl1_link1=aws.ec2.NetworkAclAssociation(
-  "dbnacl1_link1",
-  aws.ec2.NetworkAclAssociationArgs(
-    network_acl_id=dbnacl1.id,
-    subnet_id=dbsubnetsnames[0].id
-  )
-)
 
-dbnacl1_link2=aws.ec2.NetworkAclAssociation(
-  "dbnacl1_link2",
-  aws.ec2.NetworkAclAssociationArgs(
-    network_acl_id=dbnacl1.id,
-    subnet_id=dbsubnetsnames[1].id
-  )
+dbnacls=["dbnacl1_link1","dbnacl1_link2" ]
+for alldbnacls in range(len(dbnacls)):
+    dbnacls[alldbnacls]=aws.ec2.NetworkAclAssociation(
+                           dbnacls[alldbnacls],  
+                           aws.ec2.NetworkAclAssociationArgs(
+                           network_acl_id=dbnacl1.id,
+                           subnet_id=dbsubnetsnames[alldb].id
+                        )
 )
 
 ssmrole=aws.iam.Role(
@@ -818,9 +799,7 @@ scalegrp1=aws.autoscaling.Group(
      min_size=1,
      max_size=9,
      desired_capacity=3,
-     tags=aws.autoscaling.GroupTagArgs(
-       name="scalegrp1"
-     )
+     
    )
 )
 
@@ -944,9 +923,8 @@ attach1=aws.iam.RolePolicyAttachment(
 traffic_flows=aws.ec2.FlowLog(
   "traffic_flows",
   aws.ec2.FlowLogArgs(
-    log_group_name=cwlogs.name,
     log_destination_type="cloud-watch-logs",
-    log_destination=cwlogs.arn,
+    log_destination=cwlogs.arn ,
     tags={
       "Name" : "traffic_flows"
     },
@@ -956,10 +934,13 @@ traffic_flows=aws.ec2.FlowLog(
   )
 )
 
-endpolicy=aws.ec2.VpcEndpointPolicy(
-  "endpolicy",
-  aws.ec2.VpcEndpointPolicyArgs(
+endpointgw1=aws.ec2.VpcEndpoint(
+  "endpointgw1",
+  aws.ec2.VpcEndpointArgs(
     vpc_id=vpc1.id,
+    service_name="com.amazonaws.us-east-1.ec2",
+    vpc_endpoint_type="Gateway",
+    route_table_ids=[table2.id],
     policy=json.dumps({
       "Version": "2012-10-17",
       "Statement": [
@@ -971,25 +952,9 @@ endpolicy=aws.ec2.VpcEndpointPolicy(
              "s3:PutObject"
             ],
           "Resource": "arn:aws:s3:::mybucketlists/*" ,
-          "Condition": {
-            "StringEquals": {
-              "aws:SourceVpc": vpc1.arn
-            }
-          }
         }
       ]
-    })
-  )
-)
-  
-endpointgw1=aws.ec2.VpcEndpoint(
-  "endpointgw1",
-  aws.ec2.VpcEndpointArgs(
-    vpc_id=vpc1.id,
-    service_name="com.amazonaws.us-east-1.ec2",
-    vpc_endpoint_type="Gateway",
-    route_table_ids=[table2.id],
-    policy=endpolicy.id,
+      }),
     tags={
       "Name" : "endpointgw1"
     }
@@ -1026,11 +991,6 @@ bucketpolicy=aws.s3.BucketPolicy(
             "s3:PutObject"
           ],
           "Resource": "arn:aws:s3:::mybucketlists/*",
-          "Condition" : {
-            "StringEquals" : {
-              "aws:SourceVpce" : endpointgw1.arn
-            }
-          }
         }
       ]
     })
@@ -1041,7 +1001,7 @@ dbsubnetgrp1=aws.rds.SubnetGroup(
   "dbsubnetgrp1",
   aws.rds.SubnetGroupArgs(
     name="dbsubnetgrp1",
-    subnet_ids=[dbsubnetsnames[0].id , dbsubnetsnames[1].id],
+    subnet_ids=[dbsubnetsnames[alldb].id],
     tags={
       "Name" : "dbsubnetgrp1"
     }
@@ -1060,7 +1020,7 @@ dbase=aws.rds.Instance(
     username=myconfig.get_secret(key="dbuser"),
     password=myconfig.get_secret(key="dbpassword"),
     skip_final_snapshot=True,
-    subnet_group_name=dbsubnetgrp1.name,
+    db_subnet_group_name=dbsubnetgrp1.name,
     vpc_security_group_ids=[dbsecurity.id],
     tags={
       "Name" : "dbase"
@@ -1074,7 +1034,7 @@ dbase=aws.rds.Instance(
     deletion_protection=False,
     storage_type="gp2",
     storage_encrypted=False,
-    backup_window="07:00-9:00",
+    backup_window="09:00-11:00",
     maintenance_window="Fri:00:00-Fri:05:00",
   )
 )
@@ -1082,12 +1042,9 @@ dbase=aws.rds.Instance(
 
 pulumi.export("publicsubnet1" , value=pbsubnetsnames[0].cidr_block)
 pulumi.export("publicsubnet2" , value=pbsubnetsnames[1].cidr_block)
-pulumi.export("publicsubnet3" , value=pbsubnetsnames[2].cidr_block)
 
 pulumi.export("websubnet1" , value=websubnetsnames[0].cidr_block)
 pulumi.export("websubnet2" , value=websubnetsnames[1].cidr_block)
-pulumi.export("websubnet3" , value=websubnetsnames[2].cidr_block)
 
 pulumi.export("dbsubnet1" , value=dbsubnetsnames[0].cidr_block)
 pulumi.export("dbsubnet2" , value=dbsubnetsnames[1].cidr_block)
-pulumi.export("dbsubnet3" , value=dbsubnetsnames[2].cidr_block)
