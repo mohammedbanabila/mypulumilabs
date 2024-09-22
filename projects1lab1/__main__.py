@@ -122,28 +122,21 @@ for alleips in range(len(myeips)):
     )
 )
 
-natgw1=aws.ec2.NatGateway(
-  "natgw1",
-  aws.ec2.NatGatewayArgs(
-     allocation_id=myeips[0].allocation_id,
-     subnet_id=pbsubnetsnames[0].id,
-     tags={
-       "Name" : "natgw1"
-     },
-     connectivity_type="public"
+
+natlists=["natgw1" , "natgw2"]
+for allnat in range(len(natlists)):
+    natlists[allnat]=aws.ec2.NatGateway(
+       natlists[allnat],
+       aws.ec2.NatGatewayArgs(
+         allocation_id=myeips[allnat].allocation_id,
+         subnet_id=pbsubnetsnames[allnat].id,
+         tags={
+           "Name" : natlists[allnat]
+         },
+         connectivity_type="public"
+    )
   )
-)
-natgw2=aws.ec2.NatGateway(
-  "natgw2",
-  aws.ec2.NatGatewayArgs(
-     allocation_id=myeips[1].allocation_id,
-     subnet_id=pbsubnetsnames[1].id,
-     tags={
-       "Name" : "natgw2"
-     },
-     connectivity_type="public"
-  )
-)
+
 
 table2=aws.ec2.RouteTable(
   "table2",
@@ -152,7 +145,7 @@ table2=aws.ec2.RouteTable(
     routes=[
        aws.ec2.RouteTableRouteArgs(
          cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
-         nat_gateway_id=natgw1.id
+         nat_gateway_id=allnat[0].id
        )
     ],
     tags={
@@ -184,7 +177,7 @@ table3=aws.ec2.RouteTable(
     routes=[
        aws.ec2.RouteTableRouteArgs(
          cidr_blocks=[myconfig.get_secret(key="allow_any_traffic")],
-         nat_gateway_id=natgw2.id
+         nat_gateway_id=allnat[1].id
        )
     ],
     tags={
