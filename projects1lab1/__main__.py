@@ -387,15 +387,22 @@ nacl1=aws.ec2.NetworkAcl(
          protocol="tcp",
          cidr_block=myconfig.get_secret(key="allow_any_traffic"),
        ),
-         aws.ec2.NetworkAclIngressArgs(
+        aws.ec2.NetworkAclIngressArgs(
          from_port=3306,
          to_port=3306,
          rule_no=400,
          action="allow",
          protocol="tcp",
-         cidr_block=vpc1.cidr_block,
+         cidr_block=dbsubnetsnames[0].cidr_block,
        ),
-        
+         aws.ec2.NetworkAclIngressArgs(
+         from_port=3306,
+         to_port=3306,
+         rule_no=401,
+         action="allow",
+         protocol="tcp",
+         cidr_block=dbsubnetsnames[1].cidr_block,
+       ),
        aws.ec2.NetworkAclIngressArgs(
          from_port=1024,
          to_port=65535,
@@ -438,7 +445,6 @@ nacl1=aws.ec2.NetworkAcl(
          action="allow",
          protocol="tcp",
          cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
        ),
        aws.ec2.NetworkAclEgressArgs(
          from_port=443,
@@ -447,15 +453,22 @@ nacl1=aws.ec2.NetworkAcl(
          action="allow",
          protocol="tcp",
          cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
        ),
-       aws.ec2.NetworkAclEgressArgs(
+        aws.ec2.NetworkAclEgressArgs(
          from_port=3306,
          to_port=3306,
          rule_no=400,
          action="allow",
          protocol="tcp",
-         cidr_block=vpc1.cidr_block,
+         cidr_block=dbsubnetsnames[0].cidr_block,
+       ),
+       aws.ec2.NetworkAclEgressArgs(
+         from_port=3306,
+         to_port=3306,
+         rule_no=401,
+         action="allow",
+         protocol="tcp",
+         cidr_block=dbsubnetsnames[1].cidr_block,
        ),
        aws.ec2.NetworkAclEgressArgs(
          from_port=1024,
@@ -464,7 +477,6 @@ nacl1=aws.ec2.NetworkAcl(
          action="allow",
          protocol="tcp",
          cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
        ),
        aws.ec2.NetworkAclEgressArgs(
          from_port=0,
