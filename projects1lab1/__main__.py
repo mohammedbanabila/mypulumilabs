@@ -347,12 +347,12 @@ rule1=aws.lb.ListenerRule(
     }
        )
   )
-pbnacl1=aws.ec2.NetworkAcl(
-   "pbnacl1",
+nacl1=aws.ec2.NetworkAcl(
+   "nacl1",
    aws.ec2.NetworkAclArgs(
      vpc_id=vpc1.id,
      tags={
-       "Name" : "pbnacl1"
+       "Name" : "nacl1"
      },
      ingress=[
        aws.ec2.NetworkAclIngressArgs(
@@ -387,10 +387,19 @@ pbnacl1=aws.ec2.NetworkAcl(
          protocol="tcp",
          cidr_block=myconfig.get_secret(key="allow_any_traffic"),
        ),
+         aws.ec2.NetworkAclIngressArgs(
+         from_port=3306,
+         to_port=3306,
+         rule_no=400,
+         action="allow",
+         protocol="tcp",
+         cidr_block=vpc1.cidr_block,
+       ),
+        
        aws.ec2.NetworkAclIngressArgs(
          from_port=1024,
          to_port=65535,
-         rule_no=400,
+         rule_no=500,
          action="allow",
          protocol="tcp",
          cidr_block=myconfig.get_secret(key="allow_any_traffic"),
@@ -398,7 +407,7 @@ pbnacl1=aws.ec2.NetworkAcl(
         aws.ec2.NetworkAclIngressArgs(
          from_port=0,
          to_port=0,
-         rule_no=500,
+         rule_no=600,
          action="allow",
          protocol="-1",
          cidr_block=myconfig.get_secret(key="allow_any_traffic"),
@@ -441,9 +450,17 @@ pbnacl1=aws.ec2.NetworkAcl(
 
        ),
        aws.ec2.NetworkAclEgressArgs(
+         from_port=3306,
+         to_port=3306,
+         rule_no=400,
+         action="allow",
+         protocol="tcp",
+         cidr_block=vpc1.cidr_block,
+       ),
+       aws.ec2.NetworkAclEgressArgs(
          from_port=1024,
          to_port=65535,
-         rule_no=400,
+         rule_no=500,
          action="allow",
          protocol="tcp",
          cidr_block=myconfig.get_secret(key="allow_any_traffic"),
@@ -452,7 +469,7 @@ pbnacl1=aws.ec2.NetworkAcl(
        aws.ec2.NetworkAclEgressArgs(
          from_port=0,
          to_port=0,
-         rule_no=500,
+         rule_no=600,
          action="allow",
          protocol="-1",
          cidr_block=myconfig.get_secret(key="allow_any_traffic"),
@@ -467,252 +484,33 @@ for allpbnacls in range(len(pbnacls)):
     pbnacls[allpbnacls]=aws.ec2.NetworkAclAssociation(
                           pbnacls[allpbnacls],  
                           aws.ec2.NetworkAclAssociationArgs(
-                           network_acl_id=pbnacl1.id,
+                           network_acl_id=nacl1.id,
                            subnet_id=pbsubnetsnames[allpub].id 
                         )
 )
-
-
-webnacl1=aws.ec2.NetworkAcl(
-   "webnacl1",
-   aws.ec2.NetworkAclArgs(
-     vpc_id=vpc1.id,
-     tags={
-       "Name" : "webnacl1"
-     },
-     ingress=[
-       aws.ec2.NetworkAclIngressArgs(
-         from_port=22,
-         to_port=22,
-         rule_no=100,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="myips")
-       ),
-       aws.ec2.NetworkAclIngressArgs(
-         from_port=22,
-         to_port=22,
-         rule_no=101,
-         action="deny",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-        aws.ec2.NetworkAclIngressArgs(
-         from_port=80,
-         to_port=80,
-         rule_no=200,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-        aws.ec2.NetworkAclIngressArgs(
-         from_port=443,
-         to_port=443,
-         rule_no=300,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-       aws.ec2.NetworkAclIngressArgs(
-         from_port=1024,
-         to_port=65535,
-         rule_no=400,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-        aws.ec2.NetworkAclIngressArgs(
-         from_port=0,
-         to_port=0,
-         rule_no=500,
-         action="allow",
-         protocol="-1",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-     ],
-     egress=[
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=22,
-         to_port=22,
-         rule_no=100,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="myips")
-       ),
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=22,
-         to_port=22,
-         rule_no=101,
-         action="deny",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=80,
-         to_port=80,
-         rule_no=200,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=443,
-         to_port=443,
-         rule_no=300,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=1024,
-         to_port=65535,
-         rule_no=400,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=0,
-         to_port=0,
-         rule_no=500,
-         action="allow",
-         protocol="-1",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-     ]
-   )
-)
-
-webnacls=["webnacl1_link1","webnacl1_link2" ]
-for allwbnacls in range(len(webnacls)):
-    webnacls[allwbnacls]=aws.ec2.NetworkAclAssociation(
-                           webnacls[allwbnacls],  
-                           aws.ec2.NetworkAclAssociationArgs(
-                           network_acl_id=webnacl1.id,
-                           subnet_id=websubnetsnames[allweb].id
+    
+wbnacls=["wbnacl1_link1","wbnacl1_link2" ]
+for allwbnacls in range(len(wbnacls)):
+    wbnacls[allwbnacls]=aws.ec2.NetworkAclAssociation(
+                          wbnacls[allwbnacls],  
+                          aws.ec2.NetworkAclAssociationArgs(
+                           network_acl_id=nacl1.id,
+                           subnet_id=websubnetsnames[allwbnacls].id 
                         )
-)
-
-dbnacl1=aws.ec2.NetworkAcl(
-   "dbnacl1",
-   aws.ec2.NetworkAclArgs(
-     vpc_id=vpc1.id,
-     tags={
-       "Name" : "dbnacl1"
-     },
-     ingress=[
-       aws.ec2.NetworkAclIngressArgs(
-         from_port=22,
-         to_port=22,
-         rule_no=100,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="myips")
-       ),
-       aws.ec2.NetworkAclIngressArgs(
-         from_port=22,
-         to_port=22,
-         rule_no=101,
-         action="deny",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-       aws.ec2.NetworkAclIngressArgs(
-         from_port=3306,
-         to_port=3306,
-         rule_no=200,
-         action="allow",
-         protocol="tcp",
-         cidr_block=vpc1.cidr_block
-       ),
-        aws.ec2.NetworkAclIngressArgs(
-         from_port=1024,
-         to_port=65535,
-         rule_no=300,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-        aws.ec2.NetworkAclIngressArgs(
-         from_port=0,
-         to_port=0,
-         rule_no=400,
-         action="allow",
-         protocol="-1",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-     ],
-     egress=[
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=22,
-         to_port=22,
-         rule_no=100,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="myips")
-       ),
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=22,
-         to_port=22,
-         rule_no=101,
-         action="deny",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=3306,
-         to_port=3306,
-         rule_no=200,
-         action="allow",
-         protocol="tcp",
-         cidr_block=vpc1.cidr_block
-       ),
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=1024,
-         to_port=65535,
-         rule_no=300,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-       aws.ec2.NetworkAclEgressArgs(
-         from_port=0,
-         to_port=0,
-         rule_no=400,
-         action="allow",
-         protocol="-1",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-
-       ),
-     ]
-   )
 )
 
 
 dbnacls=["dbnacl1_link1","dbnacl1_link2" ]
 for alldbnacls in range(len(dbnacls)):
     dbnacls[alldbnacls]=aws.ec2.NetworkAclAssociation(
-                           dbnacls[alldbnacls],  
-                           aws.ec2.NetworkAclAssociationArgs(
-                           network_acl_id=dbnacl1.id,
-                           subnet_id=dbsubnetsnames[alldb].id
+                          dbnacls[alldbnacls],  
+                          aws.ec2.NetworkAclAssociationArgs(
+                           network_acl_id=nacl1.id,
+                           subnet_id=dbsubnetsnames[alldbnacls].id 
                         )
 )
+
+
 
 ssmrole=aws.iam.Role(
   "ssmrole",
