@@ -1,5 +1,5 @@
 """An AWS Python Pulumi program"""
-import pulumi, json , pulumi_aws as aws 
+import pulumi,json , pulumi_aws as aws 
 
 myconfig=pulumi.Config()
 vpc1=aws.ec2.Vpc(
