@@ -246,7 +246,7 @@ nacls1=aws.ec2.NetworkAcl(
                   from_port=32768,
                   to_port=65535,
                   protocol="tcp",
-                  cidr_block=cfg1.get_secret(key="traffic_any")
+                  cidr_block=cfg1.get_secret(key="traffic_any"),
                   action="allow",
                   icmp_code=0,
                   icmp_type=0,
