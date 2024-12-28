@@ -1,11 +1,11 @@
 """An AWS Python Pulumi program"""
 import pulumi,json , pulumi_aws as aws 
 
-myconfig=pulumi.Config()
+cfg1=pulumi.Config()
 vpc1=aws.ec2.Vpc(
   "vpc1" ,
   aws.ec2.VpcArgs(
-      cidr_block=myconfig.get_secret(key="vpcblock1"),
+      cidr_block=cfg1.get_secret(key="vpcblock1"),
       tags={
           "Name" : "vpc1"
       }
@@ -23,9 +23,9 @@ intgw1=aws.ec2.InternetGateway(
 
 pbsubnetsnames=["pub1sub1" ,  "pub2sub2" ]
 zones=["us-east-1a" , "us-east-1b" ]
-pbcidr1=myconfig.get_secret(key="public1cidr")
-pbcidr2=myconfig.get_secret(key="public2cidr")
-pbcidr3=myconfig.get_secret(key="public3cidr")
+pbcidr1=cfg1.get_secret(key="public1cidr")
+pbcidr2=cfg1.get_secret(key="public2cidr")
+pbcidr3=cfg1.get_secret(key="public3cidr")
 allpbcidrs=[pbcidr1 , pbcidr2 , pbcidr3]
 for allpub in range(len(pbsubnetsnames)):
     pbsubnetsnames[allpub]=aws.ec2.Subnet(
@@ -41,9 +41,9 @@ for allpub in range(len(pbsubnetsnames)):
     )
 
 websubnetsnames=["web1sub1" , "web2sub2" ]
-webcidr1=myconfig.get_secret(key="wb1cidr1")
-webcidr2=myconfig.get_secret(key="wb2cidr2")
-webcidr3=myconfig.get_secret(key="wb3cidr3")
+webcidr1=cfg1.get_secret(key="wb1cidr1")
+webcidr2=cfg1.get_secret(key="wb2cidr2")
+webcidr3=cfg1.get_secret(key="wb3cidr3")
 webcidrs=[webcidr1 , webcidr2 , webcidr3]
 for allweb in range(len(websubnetsnames)):
     websubnetsnames[allweb]=aws.ec2.Subnet(
@@ -59,9 +59,9 @@ for allweb in range(len(websubnetsnames)):
     )
 
 dbsubnetsnames=["db1sub1" , "db2sub2" ]
-dbase1cidr1=myconfig.get_secret(key="db1cidr1")
-dbase2cidr2=myconfig.get_secret(key="db2cidr2")
-dbase3cidr3=myconfig.get_secret(key="db3cidr3")
+dbase1cidr1=cfg1.get_secret(key="db1cidr1")
+dbase2cidr2=cfg1.get_secret(key="db2cidr2")
+dbase3cidr3=cfg1.get_secret(key="db3cidr3")
 dbcidrs=[dbase1cidr1 , dbase2cidr2 , dbase3cidr3]
 
 for alldb in range(len(dbsubnetsnames)):
@@ -83,7 +83,7 @@ table1=aws.ec2.RouteTable(
     vpc_id=vpc1.id , 
     routes=[
        aws.ec2.RouteTableRouteArgs(
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         cidr_block=cfg1.get_secret(key="allow_any_traffic"),
          gateway_id=intgw1.id
        )
     ],
@@ -115,14 +115,15 @@ for alleips in range(len(myeips)):
     )
 )
 
-
+eips=[myeips[0].id , myeips[1].id]
+mypbs=[ pbsubnetsnames[0].id , pbsubnetsnames[1].id]
 natlists=["natgw1" , "natgw2"]
 for allnat in range(len(natlists)):
     natlists[allnat]=aws.ec2.NatGateway(
        natlists[allnat],
        aws.ec2.NatGatewayArgs(
-         allocation_id=myeips[allnat].allocation_id,
-         subnet_id=pbsubnetsnames[allnat].id,
+         allocation_id=eips[allnat],
+         subnet_id=mypbs[allnat],
          tags={
            "Name" : natlists[allnat]
          },
@@ -130,60 +131,47 @@ for allnat in range(len(natlists)):
     )
   )
 
-
-table2=aws.ec2.RouteTable(
-  "table2",
-  aws.ec2.RouteTableArgs(
-    vpc_id=vpc1.id ,
-    routes=[
-       aws.ec2.RouteTableRouteArgs(
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-         nat_gateway_id=natlists[0].id
-       )
-    ],
-    tags={
-      "Name" :  "table2"
-    }
-  )
-)
-
-wblink_lists1=["table2link1" , "table2link2"]
-subnt2=[websubnetsnames[0].id , dbsubnetsnames[0].id]
-for allink2 in range(len(wblink_lists1)):
-    wblink_lists1[allink2]=aws.ec2.RouteTableAssociation(
-         wblink_lists1[allink2],
-        aws.ec2.RouteTableAssociationArgs(
-          route_table_id=table2.id,
-          subnet_id=subnt2[allink2]
+natgws=[natlists[0].id , natlists[1].id ]
+mytables=["table2" , "table3"]
+for alltables in range(len(mytables)):
+    mytables[alltables]=aws.ec2.RouteTable(
+        mytables[alltables],
+        aws.ec2.RouteTableArgs(
+          vpc_id=vpc1.id,
+          routes=[
+            aws.ec2.RouteTableRouteArgs(
+              cidr_block=cfg1.get_secret(key="allow_any_traffic"),
+              nat_gateway_id=natgws[alltables]
+            )
+          ],
+          tags={
+            "Name" : mytables[alltables]
+          }
         )
-)
+    )
 
-table3=aws.ec2.RouteTable(
-  "table3",
-  aws.ec2.RouteTableArgs(
-    vpc_id=vpc1.id ,
-    routes=[
-       aws.ec2.RouteTableRouteArgs(
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-         nat_gateway_id=natlists[1].id
-       )
-    ],
-    tags={
-      "Name" : "table3"
-    }
-  )
-)
-
-dblink_lists1=["table3link1" , "table3link2"]
-subnt3=[websubnetsnames[1].id , dbsubnetsnames[1].id]
-for allink3 in range(len(dblink_lists1)):
-    dblink_lists1[allink3]=aws.ec2.RouteTableAssociation(
-         dblink_lists1[allink3],
+wblists=[websubnetsnames[0].id , websubnetsnames[1].id]
+dblists=[dbsubnetsnames[0].id , dbsubnetsnames[1].id]
+tableslnk=[mytables[0].id , mytables[1].id]
+tables_attach1=[ "tbattach4" , "tbattach5"]
+tables_attach2=[ "tbattach6" , "tbattach7"]
+for allattaches1 in range(len(tables_attach1)):
+    tables_attach1[allattaches1]=aws.ec2.RouteTableAssociation(
+        tables_attach1[allattaches1],
         aws.ec2.RouteTableAssociationArgs(
-          route_table_id=table3.id,
-          subnet_id=subnt3[allink3]
+          route_table_id=tableslnk[allattaches1],
+          subnet_id=wblists[allattaches1]
         )
-)
+    )
+for allattaches2 in range(len(tables_attach2)):
+        tables_attach2[allattaches2]=aws.ec2.RouteTableAssociation(
+            tables_attach2[allattaches2],
+            aws.ec2.RouteTableAssociationArgs(
+              route_table_id=tableslnk[allattaches2],
+              subnet_id=dblists[allattaches2]
+            )
+        )
+
 
 lbsecurity=aws.ec2.SecurityGroup(
   "lbsecurity",
@@ -195,13 +183,13 @@ lbsecurity=aws.ec2.SecurityGroup(
         from_port=80,
         to_port=80,
         protocol="tcp",
-        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
+        cidr_blocks=cfg1.get_secret(key="allow_any_traffic"),
       ),
       aws.ec2.SecurityGroupIngressArgs(
         from_port=443,
         to_port=443,
         protocol="tcp",
-        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
+        cidr_blocks=cfg1.get_secret(key="allow_any_traffic"),
       )
     ],
     egress=[
@@ -209,7 +197,7 @@ lbsecurity=aws.ec2.SecurityGroup(
         from_port=0,
         to_port=0,
         protocol="-1",
-        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
+        cidr_blocks=cfg1.get_secret(key="allow_any_traffic"),
       )
     ],
     tags={
@@ -235,7 +223,7 @@ websecurity=aws.ec2.SecurityGroup(
         from_port=0,
         to_port=0,
         protocol="-1",
-        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
+        cidr_blocks=cfg1.get_secret(key="allow_any_traffic"),
       )
     ],
     tags={
@@ -262,7 +250,7 @@ dbsecurity=aws.ec2.SecurityGroup(
         from_port=0,
         to_port=0,
         protocol="-1",
-        cidr_blocks=myconfig.get_secret(key="allow_any_traffic"),
+        cidr_blocks=cfg1.get_secret(key="allow_any_traffic"),
       )
     ],
     tags={
@@ -361,7 +349,7 @@ nacl1=aws.ec2.NetworkAcl(
          rule_no=100,
          action="allow",
          protocol="tcp",
-         cidr_block=myconfig.get_secret(key="myips")
+         cidr_block=cfg1.get_secret(key="myips")
        ),
        aws.ec2.NetworkAclIngressArgs(
          from_port=22,
@@ -369,7 +357,7 @@ nacl1=aws.ec2.NetworkAcl(
          rule_no=101,
          action="deny",
          protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         cidr_block=cfg1.get_secret(key="allow_any_traffic"),
        ),
         aws.ec2.NetworkAclIngressArgs(
          from_port=80,
@@ -377,7 +365,7 @@ nacl1=aws.ec2.NetworkAcl(
          rule_no=200,
          action="allow",
          protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         cidr_block=cfg1.get_secret(key="allow_any_traffic"),
        ),
         aws.ec2.NetworkAclIngressArgs(
          from_port=443,
@@ -385,7 +373,7 @@ nacl1=aws.ec2.NetworkAcl(
          rule_no=300,
          action="allow",
          protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         cidr_block=cfg1.get_secret(key="allow_any_traffic"),
        ),
         aws.ec2.NetworkAclIngressArgs(
          from_port=3306,
@@ -403,21 +391,13 @@ nacl1=aws.ec2.NetworkAcl(
          protocol="tcp",
          cidr_block=dbsubnetsnames[1].cidr_block,
        ),
-       aws.ec2.NetworkAclIngressArgs(
-         from_port=1024,
-         to_port=65535,
-         rule_no=500,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-       ),
         aws.ec2.NetworkAclIngressArgs(
          from_port=0,
          to_port=0,
-         rule_no=600,
+         rule_no=500,
          action="allow",
          protocol="-1",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         cidr_block=cfg1.get_secret(key="allow_any_traffic"),
        ),
      ],
      egress=[
@@ -427,7 +407,7 @@ nacl1=aws.ec2.NetworkAcl(
          rule_no=100,
          action="allow",
          protocol="tcp",
-         cidr_block=myconfig.get_secret(key="myips")
+         cidr_block=cfg1.get_secret(key="myips")
        ),
        aws.ec2.NetworkAclEgressArgs(
          from_port=22,
@@ -435,7 +415,7 @@ nacl1=aws.ec2.NetworkAcl(
          rule_no=101,
          action="deny",
          protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         cidr_block=cfg1.get_secret(key="allow_any_traffic"),
 
        ),
        aws.ec2.NetworkAclEgressArgs(
@@ -444,7 +424,7 @@ nacl1=aws.ec2.NetworkAcl(
          rule_no=200,
          action="allow",
          protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         cidr_block=cfg1.get_secret(key="allow_any_traffic"),
        ),
        aws.ec2.NetworkAclEgressArgs(
          from_port=443,
@@ -452,7 +432,7 @@ nacl1=aws.ec2.NetworkAcl(
          rule_no=300,
          action="allow",
          protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         cidr_block=cfg1.get_secret(key="allow_any_traffic"),
        ),
         aws.ec2.NetworkAclEgressArgs(
          from_port=3306,
@@ -471,57 +451,29 @@ nacl1=aws.ec2.NetworkAcl(
          cidr_block=dbsubnetsnames[1].cidr_block,
        ),
        aws.ec2.NetworkAclEgressArgs(
-         from_port=1024,
-         to_port=65535,
-         rule_no=500,
-         action="allow",
-         protocol="tcp",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
-       ),
-       aws.ec2.NetworkAclEgressArgs(
          from_port=0,
          to_port=0,
-         rule_no=600,
+         rule_no=500,
          action="allow",
          protocol="-1",
-         cidr_block=myconfig.get_secret(key="allow_any_traffic"),
+         cidr_block=cfg1.get_secret(key="allow_any_traffic"),
 
        ),
      ]
    )
 )
 
-pbnacls=["pbnacl1_link1","pbnacl1_link2" ]
-for allpbnacls in range(len(pbnacls)):
-    pbnacls[allpbnacls]=aws.ec2.NetworkAclAssociation(
-                          pbnacls[allpbnacls],  
-                          aws.ec2.NetworkAclAssociationArgs(
-                           network_acl_id=nacl1.id,
-                           subnet_id=pbsubnetsnames[allpub].id 
-                        )
-)
-    
-wbnacls=["wbnacl1_link1","wbnacl1_link2" ]
-for allwbnacls in range(len(wbnacls)):
-    wbnacls[allwbnacls]=aws.ec2.NetworkAclAssociation(
-                          wbnacls[allwbnacls],  
-                          aws.ec2.NetworkAclAssociationArgs(
-                           network_acl_id=nacl1.id,
-                           subnet_id=websubnetsnames[allwbnacls].id 
-                        )
-)
+nacls_collect=["pbnacl1_link1","pbnacl1_link2" , "wbnacl1_link1","wbnacl1_link2"  , "dbnacl1_link1","dbnacl1_link2" ]
+nacl_subnets=[pbsubnetsnames[0].id , pbsubnetsnames[1].id , websubnetsnames[0].id , websubnetsnames[1].id , dbsubnetsnames[0].id , dbsubnetsnames[1].id]
 
-
-dbnacls=["dbnacl1_link1","dbnacl1_link2" ]
-for alldbnacls in range(len(dbnacls)):
-    dbnacls[alldbnacls]=aws.ec2.NetworkAclAssociation(
-                          dbnacls[alldbnacls],  
-                          aws.ec2.NetworkAclAssociationArgs(
-                           network_acl_id=nacl1.id,
-                           subnet_id=dbsubnetsnames[alldbnacls].id 
-                        )
-)
-
+for allnacls in range(len(nacls_collect)):
+    nacls_collect[allnacls]=aws.ec2.NetworkAclAssociation(
+        nacls_collect[allnacls],
+        aws.ec2.NetworkAclAssociationArgs(
+          network_acl_id=nacl1.id,
+          subnet_id=nacl_subnets[allnacls]
+        )
+    )
 
 
 ssmrole=aws.iam.Role(
@@ -532,7 +484,7 @@ ssmrole=aws.iam.Role(
        "Version" : "2012-10-17",
        "Statement": [{
           "Effect" : "Allow",
-          "Action" : myconfig.get_secret(key="assumerole"),
+          "Action" : cfg1.get_secret(key="assumerole"),
           "Principal" : {
             "Service" : "ec2.amazonaws.com"
           }
@@ -622,11 +574,8 @@ runtimeConfig:
           - sudo systemctl enable mysql --now 
           - sudo systemctl enable amazon-ssm-agent --now
           
-        
-          
 """
   ))
-
 
 ssmlink=aws.ssm.Association(
   "ssmlink",
@@ -669,7 +618,7 @@ flowrole=aws.iam.Role(
        "Version" : "2012-10-17",
        "Statement": [{
           "Effect" : "Allow",
-          "Action" : myconfig.get_secret(key="assumerole"),
+          "Action" : cfg1.get_secret(key="assumerole"),
           "Principal" : {
             "Service" : "vpc-flow-logs.amazonaws.com"
           }
@@ -693,7 +642,7 @@ flowpolicy=aws.iam.Policy(
               "logs:GetLogEvents",
               "logs:PutLogEvents" 
            ],
-           "Resource" : myconfig.get_secret(key="flow_cwlogs")
+           "Resource" : cfg1.get_secret(key="flow_cwlogs")
         }]
      })
    )
@@ -720,69 +669,6 @@ traffic_flows=aws.ec2.FlowLog(
   )
 )
 
-endpointgw1=aws.ec2.VpcEndpoint(
-  "endpointgw1",
-  aws.ec2.VpcEndpointArgs(
-    vpc_id=vpc1.id,
-    service_name="com.amazonaws.us-east-1.ec2",
-    vpc_endpoint_type="Gateway",
-    route_table_ids=[table2.id],
-    policy=json.dumps({
-      "Version": "2012-10-17",
-      "Statement": [
-        {
-          "Effect": "Allow",
-          "Principal": "*",
-          "Action": [
-             "s3:GetObject",
-             "s3:PutObject"
-            ],
-          "Resource": "arn:aws:s3:::mybucketlists/*",
-        }
-      ]
-      }),
-    tags={
-      "Name" : "endpointgw1"
-    }
-  )
-)
-
-mybucket=aws.s3.Bucket(
-  "mybucket",
-  aws.s3.BucketArgs(
-    bucket="mybucketlists",
-    acl="private",
-    force_destroy=True,
-    versioning={
-      "enabled": True
-    },
-    tags={
-      "Name" : "mybucket"
-    }
-  )
-)
-
-bucketpolicy=aws.s3.BucketPolicy(
-  "bucketpolicy",
-  aws.s3.BucketPolicyArgs(
-    bucket=mybucket.bucket,
-    policy=json.dumps({
-      "Version": "2012-10-17",
-      "Statement": [
-        {
-          "Effect": "Allow",
-          "Principal": "*",
-          "Action": [
-            "s3:GetObject",
-            "s3:PutObject"
-          ],
-          "Resource": "arn:aws:s3:::mybucketlists/*",
-        }
-      ]
-    })
-  )
-)
-
 dbsubnetgrp1=aws.rds.SubnetGroup(
   "dbsubnetgrp1",
   aws.rds.SubnetGroupArgs(
@@ -803,8 +689,8 @@ dbase=aws.rds.Instance(
     engine="mysql",
     engine_version="8.0",
     instance_class="db.t3.micro",
-    username=myconfig.get_secret(key="dbuser"),
-    password=myconfig.get_secret(key="dbpassword"),
+    username=cfg1.get_secret(key="dbuser"),
+    password=cfg1.get_secret(key="dbpassword"),
     skip_final_snapshot=True,
     db_subnet_group_name=dbsubnetgrp1.name,
     vpc_security_group_ids=[dbsecurity.id],
@@ -824,15 +710,3 @@ dbase=aws.rds.Instance(
     maintenance_window="Fri:00:00-Fri:05:00",
   )
 )
-
-pulumi.export("publicsubnet1" , value=pbsubnetsnames[0].cidr_block)
-pulumi.export("publicsubnet2" , value=pbsubnetsnames[1].cidr_block)
-
-pulumi.export("websubnet1" , value=websubnetsnames[0].cidr_block)
-pulumi.export("websubnet2" , value=websubnetsnames[1].cidr_block)
-
-pulumi.export("dbsubnet1" , value=dbsubnetsnames[0].cidr_block)
-pulumi.export("dbsubnet2" , value=dbsubnetsnames[1].cidr_block)
-
-pulumi.export("dbname" , value=dbase.db_name)
-pulumi.export("dbhost", value=dbase.endpoint)
