@@ -35,9 +35,9 @@ for allpbsub in range(len(pbsubs)):
             vpc_id=vpc1.id,
             cidr_block=pbcidrs[allpbsub],
             availability_zone=zones[allpbsub],
+            map_public_ip_on_launch=True,
             tags={
                 "Name": pbsubs[allpbsub],
-                "kubernetes.io/role/elb": "1",
             },
         )
     )
@@ -56,13 +56,11 @@ for allndsub in range(len(ndsubs)):
             availability_zone=zones[allndsub],
             tags={
                 "Name": ndsubs[allndsub],
-                "kubernetes.io/role/internal-elb": "1",
             },
         )
     )
     
 dbsubs=["db1","db2"]
-zones=["us-east-1a","us-east-1b"]
 dbcidr1=cfg1.require_secret("cidr5")
 dbcidr2=cfg1.require_secret("cidr6")
 dbcidrs=[dbcidr1,dbcidr2]
@@ -217,6 +215,16 @@ mynacls=aws.ec2.NetworkAcl(
                action="allow",
                rule_no=400
                ),
+            aws.ec2.NetworkAclIngressArgs(
+               from_port=1024,
+               to_port=65535,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=500
+               ),
            aws.ec2.NetworkAclIngressArgs(
                from_port=0,
                to_port=0,
@@ -225,7 +233,7 @@ mynacls=aws.ec2.NetworkAcl(
                icmp_code=0,
                icmp_type=0,
                action="allow",
-               rule_no=500
+               rule_no=600
                ),
             ],
         egress=[
@@ -270,6 +278,16 @@ mynacls=aws.ec2.NetworkAcl(
                rule_no=400
                 ),
                aws.ec2.NetworkAclEgressArgs(
+               from_port=1024,
+               to_port=65535,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=500
+                ),
+               aws.ec2.NetworkAclEgressArgs(
                from_port=0,
                to_port=0,
                protocol="-1", 
@@ -277,7 +295,7 @@ mynacls=aws.ec2.NetworkAcl(
                icmp_code=0,
                icmp_type=0,
                action="allow",
-               rule_no=500
+               rule_no=600
                 ),
             ],
         tags={
@@ -286,9 +304,10 @@ mynacls=aws.ec2.NetworkAcl(
     )
 )
 
+
 nacllnk1=["nacl1","nacl2"] 
 for allnacllinks1 in range(len(nacllnk1)):
-    nacllnk1[allnacllinks1]=aws.ec2.NetworkAclAssociation(
+      nacllnk1[allnacllinks1]=aws.ec2.NetworkAclAssociation(
         nacllnk1[allnacllinks1],
         aws.ec2.NetworkAclAssociationArgs(
             network_acl_id=mynacls.id,
@@ -308,7 +327,7 @@ for allnacllinks2 in range(len(nacllnk2)):
     )
     
 
-nacllnk3=["nacll5","nacl6"] 
+nacllnk3=["nacl5","nacl6"] 
 for allnacllinks3 in range(len(nacllnk3)):
     nacllnk3[allnacllinks3]=aws.ec2.NetworkAclAssociation(
         nacllnk3[allnacllinks3],
@@ -353,35 +372,44 @@ nodesrole=aws.iam.Role(
         })
 ))
 
-cluster_amazon_eks_cluster_policy = aws.iam.RolePolicyAttachment("cluster_AmazonEKSClusterPolicy",
-    policy_arn="arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
-    role=eksrole.name)
-cluster_amazon_eks_compute_policy = aws.iam.RolePolicyAttachment("cluster_AmazonEKSComputePolicy",
-    policy_arn="arn:aws:iam::aws:policy/AmazonEKSComputePolicy",
-    role=eksrole.name)
-cluster_amazon_eks_block_storage_policy = aws.iam.RolePolicyAttachment("cluster_AmazonEKSBlockStoragePolicy",
-    policy_arn="arn:aws:iam::aws:policy/AmazonEKSBlockStoragePolicy",
-    role=eksrole.name)
-cluster_amazon_eks_load_balancing_policy = aws.iam.RolePolicyAttachment("cluster_AmazonEKSLoadBalancingPolicy",
-    policy_arn="arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy",
-    role=eksrole.name)
-cluster_amazon_eks_networking_policy = aws.iam.RolePolicyAttachment("cluster_AmazonEKSNetworkingPolicy",
-    policy_arn="arn:aws:iam::aws:policy/AmazonEKSNetworkingPolicy",
-    role=eksrole.name)
 
-node_amazon_eks_worker_node_minimal_policy = aws.iam.RolePolicyAttachment("node_AmazonEKSWorkerNodeMinimalPolicy",
-    policy_arn="arn:aws:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy",
-    role=nodesrole.name)
-node_amazon_ec2_container_registry_pull_only = aws.iam.RolePolicyAttachment("node_AmazonEC2ContainerRegistryPullOnly",
-    policy_arn="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly",
-    role=nodesrole.name)
+eks_cluster_policy = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
+eks_compute_policy = "arn:aws:iam::aws:policy/AmazonEKSComputePolicy",
+eks_block_storage_policy = "arn:aws:iam::aws:policy/AmazonEKSBlockStoragePolicy"
+eks_load_balancing_policy = "arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy",
+cluster_amazon_eks_networking_policy ="arn:aws:iam::aws:policy/AmazonEKSNetworkingPolicy",
+eks_worker_node_minimal_policy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy",
+node_amazon_ec2_container_registry_pull_only ="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly",
+eks_Auto_mode1=[ eks_load_balancing_policy , eks_load_balancing_policy , eks_load_balancing_policy , eks_block_storage_policy,cluster_amazon_eks_networking_policy ],
+eks_Auto_mode2=[  eks_worker_node_minimal_policy , node_amazon_ec2_container_registry_pull_only]
+
+cluster_attach=["clsattach1" , "clsattach2" , "clsattach3" ,  "clsattach4" , "clsattach5"]  
+cluster_attach2=[ "clsattach5" ,  "clsattach6"]
+for allclusterattach in range(len(cluster_attach)):
+    cluster_attach[allclusterattach]=aws.iam.RolePolicyAttachment(
+        cluster_attach[allclusterattach],
+        aws.iam.RolePolicyAttachmentArgs(
+            role=eksrole.name,
+            policy_arn=eks_Auto_mode1[allclusterattach]
+        )
+    )
+
+for allclusterattach2 in range(len(cluster_attach2)):
+    cluster_attach2[allclusterattach]=aws.iam.RolePolicyAttachment(
+        cluster_attach2[allclusterattach2],
+        aws.iam.RolePolicyAttachmentArgs(
+            role=nodesrole.name,
+            policy_arn=eks_Auto_mode2[allclusterattach2]
+        )
+    )
+
 
 mycluster=aws.eks.Cluster(
     "mycluster",
     aws.eks.ClusterArgs(
         name="mycluster",
         role_arn=eksrole.arn,
-        version="1.30",
+        version="1.31",
         bootstrap_self_managed_addons=False,
         compute_config={
           "enabled": True,
@@ -390,6 +418,7 @@ mycluster=aws.eks.Cluster(
         },
         access_config={
             "authentication_mode": "API",
+            "enabled": True
         },
         kubernetes_network_config={
         "elastic_load_balancing": {
@@ -405,7 +434,7 @@ mycluster=aws.eks.Cluster(
         },
         vpc_config={
             "endpoint_public_access": True,
-            "endpoint_private_access": False,
+            "endpoint_private_access": True,
             "public_access_cidrs": [ cfg1.require_secret(key="myips")],
             "subnet_ids": [
                 pbsubs[0].id,
@@ -417,74 +446,7 @@ mycluster=aws.eks.Cluster(
         }),
         opts=pulumi.ResourceOptions(
             depends_on=[
-                cluster_amazon_eks_block_storage_policy,
-                cluster_amazon_eks_cluster_policy,
-                cluster_amazon_eks_load_balancing_policy,
-                cluster_amazon_eks_networking_policy,
-                cluster_amazon_eks_compute_policy,
-                node_amazon_ec2_container_registry_pull_only,
-                node_amazon_eks_worker_node_minimal_policy,
+                eks_Auto_mode1[allclusterattach],
             ]
         )
-)
-
-
-cluster_security_rule1 =aws.ec2.SecurityGroupRule(
-    "cluster_security_rule1",
-    aws.ec2.SecurityGroupRuleArgs(
-        from_port=80,
-        to_port=80,
-        cidr_blocks=[cfg1.require_secret(key="any-traffic-ipv4")],
-        protocol="tcp",
-        security_group_id=mycluster.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id")),
-        type="ingress"
-     ),
-)
-
-
-cluster_security_rule2=aws.ec2.SecurityGroupRule(
-    "cluster_security_rule2",
-    aws.ec2.SecurityGroupRuleArgs(
-        from_port=443,
-        to_port=443,
-        cidr_blocks=[cfg1.require_secret(key="any-traffic-ipv4")],
-        protocol="tcp",
-        security_group_id=mycluster.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id")),
-        type="ingress"
-     ),
-)
-
-cluster_security_rule3=aws.ec2.SecurityGroupRule(
-    "cluster_security_rule3",
-    aws.ec2.SecurityGroupRuleArgs(
-        from_port=53,
-        to_port=53,
-        cidr_blocks=[cfg1.require_secret(key="any-traffic-ipv4")],
-        protocol="udp",
-        security_group_id=mycluster.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id")),
-        type="ingress"
-     ),
-)
-
-cluster_security_rule4=aws.ec2.SecurityGroupRule(
-    "cluster_security_rule4",
-    aws.ec2.SecurityGroupRuleArgs(
-        from_port=5432,
-        to_port=5432,
-        cidr_blocks=[cfg1.require_secret(key="any-traffic-ipv4")],
-        protocol="tcp",
-        type="ingress",
-        security_group_id=mycluster.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id"))
-     ),
-)
-cluster_security_rule5=aws.ec2.SecurityGroupRule(
-    "cluster_security_rule5",
-    aws.ec2.SecurityGroupRuleArgs(
-        from_port=10249,
-        to_port=10249,
-        cidr_blocks=[cfg1.require_secret(key="any-traffic-ipv4")],
-        protocol="tcp",
-        type="ingress",
-        security_group_id=mycluster.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id"))
-     ),
 )
