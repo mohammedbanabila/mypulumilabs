@@ -116,13 +116,12 @@ for alleip in range(len(eips)):
     )
 
 natgws=["nat1", "nat2"]
-subnat=[pbsubs[0].id , pbsubs[1].id]
 allocates=[eips[0].id , eips[1].id]
 for allnat in range(len(natgws)):
     natgws[allnat]=aws.ec2.NatGateway(
         natgws[allnat],
         aws.ec2.NatGatewayArgs(
-            subnet_id=subnat[allnat],
+            subnet_id=pbsubs[allpbsub].id,
             allocation_id=allocates[allnat],
             tags={
                 "Name": natgws[allnat],
