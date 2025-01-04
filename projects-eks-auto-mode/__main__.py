@@ -1,5 +1,5 @@
 """An AWS Python Pulumi program"""
-import pulumi , pulumi_aws as aws ,json
+import pulumi , pulumi_aws as aws ,json 
 
 cfg1=pulumi.Config()
 
@@ -10,6 +10,8 @@ vpc1=aws.ec2.Vpc(
         tags={
             "Name": "vpc1",
         },
+        enable_dns_hostnames=True,
+        enable_dns_support=True
     )
 )
 
@@ -77,21 +79,23 @@ for alldbsub in range(len(dbsubs)):
         )
     )
     
-table1=aws.ec2.RouteTable(
-    "table1",
-    aws.ec2.RouteTableArgs(
-        vpc_id=vpc1.id,
-        routes=[
-            aws.ec2.RouteTableRouteArgs(
-                cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-                gateway_id=intgw1.id,
-            ),
-        ],
-        tags={
-            "Name": "table1",
-        },
+public_tables=["publictable1" , "publictable2"]
+for allpbtable in range(len(public_tables)):
+    public_tables[allpbtable]=aws.ec2.RouteTable(
+        public_tables[allpbtable],
+        aws.ec2.RouteTableArgs(
+            vpc_id=vpc1.id,
+            routes=[
+                aws.ec2.RouteTableRouteArgs(
+                    cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+                    gateway_id=intgw1.id,
+                ),
+            ],
+            tags={
+                "Name": public_tables[allpbtable],
+            },
+        )
     )
-)
 
 table1_associates=["tblink1" , "tblink2"]
 for alltablelist_associate in range(len(table1_associates)):
@@ -99,7 +103,7 @@ for alltablelist_associate in range(len(table1_associates)):
         table1_associates[alltablelist_associate],
         aws.ec2.RouteTableAssociationArgs(
             subnet_id=pbsubs[allpbsub].id,
-            route_table_id=table1.id,
+            route_table_id=public_tables[allpbtable].id,
         )
     )
     
@@ -150,22 +154,37 @@ for alltables in range(len(private_tables)):
     )
 
 tables_associates2=[ "table2link","table3link"]
-for alltable2 in range(len(tables_associates2)):
-    tables_associates2[alltable2]=aws.ec2.RouteTableAssociation(
-        tables_associates2[alltable2],
+table2link=aws.ec2.RouteTableAssociation(
+        "table2link",
         aws.ec2.RouteTableAssociationArgs(
-            subnet_id=ndsubs[allndsub].id,
-            route_table_id=private_tables[alltables].id,
+            subnet_id=ndsubs[0].id,
+            route_table_id=private_tables[0].id,
         )
     )
 
-tables_associates3=[ "table4link","table5link"]
-for alltable3 in range(len(tables_associates3)):
-    tables_associates3[alltable3]=aws.ec2.RouteTableAssociation(
-        tables_associates3[alltable3],
+table3link=aws.ec2.RouteTableAssociation(
+        "table3link",
         aws.ec2.RouteTableAssociationArgs(
-            subnet_id=dbsubs[alldbsub].id,
-            route_table_id=private_tables[alltables].id,
+            subnet_id=ndsubs[1].id,
+            route_table_id=private_tables[1].id,
+        )
+    )
+
+
+
+table4link=aws.ec2.RouteTableAssociation(
+        "table4link",
+    aws.ec2.RouteTableAssociationArgs(
+            subnet_id=dbsubs[0].id,
+            route_table_id=private_tables[0].id,
+        )
+    )
+
+table5link=aws.ec2.RouteTableAssociation(
+        "table5link",
+    aws.ec2.RouteTableAssociationArgs(
+            subnet_id=dbsubs[1].id,
+            route_table_id=private_tables[1].id,
         )
     )
 
@@ -304,38 +323,52 @@ mynacls=aws.ec2.NetworkAcl(
 )
 
 
-nacllnk1=["nacl1","nacl2"] 
-for allnacllinks1 in range(len(nacllnk1)):
-      nacllnk1[allnacllinks1]=aws.ec2.NetworkAclAssociation(
-        nacllnk1[allnacllinks1],
+nacls30=aws.ec2.NetworkAclAssociation(
+        "nnacls30",
         aws.ec2.NetworkAclAssociationArgs(
             network_acl_id=mynacls.id,
-            subnet_id=pbsubs[allpbsub].id
+            subnet_id=pbsubs[0].id
         )
     )
-    
-
-nacllnk2=["nacl3","nacl4"] 
-for allnacllinks2 in range(len(nacllnk2)):
-    nacllnk2[allnacllinks2]=aws.ec2.NetworkAclAssociation(
-        nacllnk2[allnacllinks2],
+nacls31=aws.ec2.NetworkAclAssociation(
+        "nnacls31",
         aws.ec2.NetworkAclAssociationArgs(
             network_acl_id=mynacls.id,
-            subnet_id=ndsubs[allndsub].id
+            subnet_id=pbsubs[1].id
         )
-    )
-    
+    )   
 
-nacllnk3=["nacl5","nacl6"] 
-for allnacllinks3 in range(len(nacllnk3)):
-    nacllnk3[allnacllinks3]=aws.ec2.NetworkAclAssociation(
-        nacllnk3[allnacllinks3],
+nacls10=aws.ec2.NetworkAclAssociation(
+        "nacls10",
         aws.ec2.NetworkAclAssociationArgs(
             network_acl_id=mynacls.id,
-            subnet_id=dbsubs[alldbsub].id
+            subnet_id=ndsubs[0].id
+        )
+    )
+nacls11=aws.ec2.NetworkAclAssociation(
+        "nacls11",
+        aws.ec2.NetworkAclAssociationArgs(
+            network_acl_id=mynacls.id,
+            subnet_id=ndsubs[1].id
+        )
+    )   
+
+nacls20=aws.ec2.NetworkAclAssociation(
+        "nacls20",
+        aws.ec2.NetworkAclAssociationArgs(
+            network_acl_id=mynacls.id,
+            subnet_id=dbsubs[0].id
         )
     )
 
+
+nacls21=aws.ec2.NetworkAclAssociation(
+        "nacls21",
+        aws.ec2.NetworkAclAssociationArgs(
+            network_acl_id=mynacls.id,
+            subnet_id=dbsubs[1].id
+        )
+    )
 
 eksrole=aws.iam.Role(
     "eksrole",
@@ -348,7 +381,10 @@ eksrole=aws.iam.Role(
                     "Principal":{
                         "Service":"eks.amazonaws.com"
                     },
-                    "Action": "sts:AssumeRole"
+                    "Action": [
+                        "sts:TagSession",
+                        "sts:AssumeRole"
+                        ]
                 }
             ]
         })    
@@ -365,87 +401,136 @@ nodesrole=aws.iam.Role(
                     "Principal":{
                         "Service":"ec2.amazonaws.com"
                     },
+                 
                     "Action": "sts:AssumeRole"
-                },
+                }   
             ]
         })
 ))
 
 
-eks_cluster_policy = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
-eks_compute_policy = "arn:aws:iam::aws:policy/AmazonEKSComputePolicy",
-eks_block_storage_policy = "arn:aws:iam::aws:policy/AmazonEKSBlockStoragePolicy"
-eks_load_balancing_policy = "arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy",
-cluster_amazon_eks_networking_policy ="arn:aws:iam::aws:policy/AmazonEKSNetworkingPolicy",
-eks_worker_node_minimal_policy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy",
-node_amazon_ec2_container_registry_pull_only ="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly",
-eks_Auto_mode1=[ eks_load_balancing_policy , eks_load_balancing_policy , eks_load_balancing_policy , eks_block_storage_policy,cluster_amazon_eks_networking_policy ],
-eks_Auto_mode2=[  eks_worker_node_minimal_policy , node_amazon_ec2_container_registry_pull_only]
-
-cluster_attach=["clsattach1" , "clsattach2" , "clsattach3" ,  "clsattach4" , "clsattach5"]  
-cluster_attach2=[ "clsattach5" ,  "clsattach6"]
-for allclusterattach in range(len(cluster_attach)):
-    cluster_attach[allclusterattach]=aws.iam.RolePolicyAttachment(
-        cluster_attach[allclusterattach],
+clusterattach1=aws.iam.RolePolicyAttachment(
+        "clusterattach1",
         aws.iam.RolePolicyAttachmentArgs(
             role=eksrole.name,
-            policy_arn=eks_Auto_mode1[allclusterattach]
+            policy_arn="arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
         )
     )
 
-for allclusterattach2 in range(len(cluster_attach2)):
-    cluster_attach2[allclusterattach]=aws.iam.RolePolicyAttachment(
-        cluster_attach2[allclusterattach2],
+clusterattach2=aws.iam.RolePolicyAttachment(
+        "clusterattach2",
+        aws.iam.RolePolicyAttachmentArgs(
+            role=eksrole.name,
+            policy_arn="arn:aws:iam::aws:policy/AmazonEKSComputePolicy",
+        )
+    )
+
+clusterattach3=aws.iam.RolePolicyAttachment(
+        "clusterattach3",
+        aws.iam.RolePolicyAttachmentArgs(
+            role=eksrole.name,
+            policy_arn="arn:aws:iam::aws:policy/AmazonEKSBlockStoragePolicy",
+        )
+    )
+
+clusterattach4=aws.iam.RolePolicyAttachment(
+        "clusterattach4",
+        aws.iam.RolePolicyAttachmentArgs(
+            role=eksrole.name,
+            policy_arn="arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy",
+        )
+    )
+
+
+clusterattach5=aws.iam.RolePolicyAttachment(
+        "clusterattach5",
+        aws.iam.RolePolicyAttachmentArgs(
+            role=eksrole.name,
+            policy_arn="arn:aws:iam::aws:policy/AmazonEKSNetworkingPolicy",
+        )
+    )
+
+
+
+
+nodesattach1=aws.iam.RolePolicyAttachment(
+        "nodesattach1",
         aws.iam.RolePolicyAttachmentArgs(
             role=nodesrole.name,
-            policy_arn=eks_Auto_mode2[allclusterattach2]
+            policy_arn="arn:aws:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy",
         )
     )
 
 
-mycluster=aws.eks.Cluster(
-    "mycluster",
+nodesattach2=aws.iam.RolePolicyAttachment(
+        "nodesattach2",
+        aws.iam.RolePolicyAttachmentArgs(
+            role=nodesrole.name,
+            policy_arn="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly",
+        )
+    )
+
+nodesattach3=aws.iam.RolePolicyAttachment(
+        "nodesattach3",
+        aws.iam.RolePolicyAttachmentArgs(
+            role=nodesrole.name,
+            policy_arn=aws.iam.ManagedPolicy.AMAZON_SSM_MANAGED_EC2_INSTANCE_DEFAULT_POLICY,
+        )
+    )
+
+
+mycluster1=aws.eks.Cluster(
+    "mycluster1",
     aws.eks.ClusterArgs(
-        name="mycluster",
+        name="mycluster1",
         role_arn=eksrole.arn,
         version="1.31",
         bootstrap_self_managed_addons=False,
-        compute_config={
-          "enabled": True,
-          "node_pools": ["general-purpose"],
-          "node_role_arn": nodesrole.arn,
-        },
         access_config={
             "authentication_mode": "API",
-            "enabled": True
-        },
-        kubernetes_network_config={
-        "elastic_load_balancing": {
-            "enabled": True,
-        }},
-        storage_config={
-           "block_storage": {
-            "enabled": True,
-        }, 
         },
         tags={
-            "Name": "mycluster",
+           
+          "Name" : "mycluster1"   
+            
+        },
+        compute_config={
+        "enabled": True,
+        "node_pools": ["general-purpose"],
+        "node_role_arn": nodesrole.arn,
         },
         vpc_config={
-            "endpoint_public_access": True,
-            "endpoint_private_access": True,
-            "public_access_cidrs": [ cfg1.require_secret(key="myips")],
-            "subnet_ids": [
-                pbsubs[0].id,
-                pbsubs[1].id,
-                ndsubs[0].id,
-                ndsubs[1].id,
-
-            ],
-        }),
-        opts=pulumi.ResourceOptions(
+        "endpoint_private_access": False,
+        "endpoint_public_access": True,
+        "subnet_ids": [
+            pbsubs[0].id,
+            pbsubs[1].id,
+            ndsubs[0].id,
+            ndsubs[1].id,
+        ], },
+        storage_config={
+            
+            "block_storage": {
+            "enabled": True,
+        },
+             },
+        kubernetes_network_config={
+           "elastic_load_balancing": {
+            "enabled": True,
+        },  
+            
+        }
+    ),
+    opts=pulumi.ResourceOptions(
             depends_on=[
-                eks_Auto_mode1[allclusterattach],
+                clusterattach1,
+                clusterattach2,
+                clusterattach3,
+                clusterattach4,
+                clusterattach5
             ]
         )
 )
+
+
+
