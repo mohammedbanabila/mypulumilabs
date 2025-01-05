@@ -1,5 +1,5 @@
 """An AWS Python Pulumi program"""
-import pulumi , pulumi_aws as aws ,json 
+import pulumi , pulumi_aws as aws ,json , pulumi_kubernetes as k8s
 
 cfg1=pulumi.Config()
 
@@ -97,13 +97,20 @@ for allpbtable in range(len(public_tables)):
         )
     )
 
-table1_associates=["tblink1" , "tblink2"]
-for alltablelist_associate in range(len(table1_associates)):
-    table1_associates[alltablelist_associate]=aws.ec2.RouteTableAssociation(
-        table1_associates[alltablelist_associate],
+
+tblink1=aws.ec2.RouteTableAssociation(
+        "tblink1",
         aws.ec2.RouteTableAssociationArgs(
-            subnet_id=pbsubs[allpbsub].id,
-            route_table_id=public_tables[allpbtable].id,
+            subnet_id=pbsubs[0].id,
+            route_table_id=public_tables[0].id,
+        )
+    )
+
+tblink2=aws.ec2.RouteTableAssociation(
+        "tblink2",
+        aws.ec2.RouteTableAssociationArgs(
+            subnet_id=pbsubs[1].id,
+            route_table_id=public_tables[1].id,
         )
     )
     
@@ -153,7 +160,6 @@ for alltables in range(len(private_tables)):
         )
     )
 
-tables_associates2=[ "table2link","table3link"]
 table2link=aws.ec2.RouteTableAssociation(
         "table2link",
         aws.ec2.RouteTableAssociationArgs(
@@ -202,6 +208,16 @@ mynacls=aws.ec2.NetworkAcl(
                icmp_type=0,
                action="deny",
                rule_no=100
+               ),
+           aws.ec2.NetworkAclIngressArgs(
+               from_port=22,
+               to_port=22,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="myips"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=101
                ),
            aws.ec2.NetworkAclIngressArgs(
                from_port=80,
@@ -264,6 +280,16 @@ mynacls=aws.ec2.NetworkAcl(
                icmp_type=0,
                action="deny",
                rule_no=100
+                ),
+            aws.ec2.NetworkAclEgressArgs(
+               from_port=22,
+               to_port=22,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="myips"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=101
                 ),
                aws.ec2.NetworkAclEgressArgs(
                from_port=80,
@@ -451,8 +477,6 @@ clusterattach5=aws.iam.RolePolicyAttachment(
     )
 
 
-
-
 nodesattach1=aws.iam.RolePolicyAttachment(
         "nodesattach1",
         aws.iam.RolePolicyAttachmentArgs(
@@ -532,5 +556,38 @@ mycluster1=aws.eks.Cluster(
         )
 )
 
+cluster_security_rule1=aws.ec2.SecurityGroupRule(
+    "cluster_security_rule1",
+    aws.ec2.SecurityGroupRuleArgs(
+        from_port=22,
+        to_port=22,
+        cidr_blocks=[cfg1.require_secret(key="myips")],
+        protocol="tcp",
+        security_group_id=mycluster1.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id")),
+        type="ingress"
+     ),
+)
 
+cluster_security_rule2=aws.ec2.SecurityGroupRule(
+    "cluster_security_rule2",
+    aws.ec2.SecurityGroupRuleArgs(
+        from_port=80,
+        to_port=80,
+        cidr_blocks=[cfg1.require_secret(key="any-traffic-ipv4")],
+        protocol="tcp",
+        security_group_id=mycluster1.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id")),
+        type="ingress"
+     ),
+)
 
+cluster_security_rule3=aws.ec2.SecurityGroupRule(
+    "cluster_security_rule3",
+    aws.ec2.SecurityGroupRuleArgs(
+        from_port=443,
+        to_port=443,
+        cidr_blocks=[cfg1.require_secret(key="any-traffic-ipv4")],
+        protocol="tcp",
+        security_group_id=mycluster1.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id")),
+        type="ingress"
+     ),
+)
