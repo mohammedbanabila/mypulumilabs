@@ -1,8 +1,7 @@
 """An AWS Python Pulumi program"""
-import pulumi , pulumi_aws as aws ,json , pulumi_kubernetes as k8s
+import pulumi , pulumi_aws as aws ,json
 
 cfg1=pulumi.Config()
-
 vpc1=aws.ec2.Vpc(
     "vpc1",
     aws.ec2.VpcArgs(
@@ -10,8 +9,6 @@ vpc1=aws.ec2.Vpc(
         tags={
             "Name": "vpc1",
         },
-        enable_dns_hostnames=True,
-        enable_dns_support=True
     )
 )
 
@@ -40,7 +37,8 @@ for allpbsub in range(len(pbsubs)):
             map_public_ip_on_launch=True,
             tags={
                 "Name": pbsubs[allpbsub],
-            },
+                "kubernetes.io/role/elb": "1",
+            }
         )
     )
 
@@ -58,7 +56,8 @@ for allndsub in range(len(ndsubs)):
             availability_zone=zones[allndsub],
             tags={
                 "Name": ndsubs[allndsub],
-            },
+                "kubernetes.io/role/internal-elb": "1",
+            }
         )
     )
     
@@ -96,7 +95,6 @@ for allpbtable in range(len(public_tables)):
             },
         )
     )
-
 
 tblink1=aws.ec2.RouteTableAssociation(
         "tblink1",
@@ -140,7 +138,6 @@ for allnat in range(len(natgws)):
         )
     )
 
-
 nat_ids=[natgws[0].id , natgws[1].id]  
 private_tables=["privatetable1" , "privatetable2"]
 for alltables in range(len(private_tables)):
@@ -175,8 +172,6 @@ table3link=aws.ec2.RouteTableAssociation(
             route_table_id=private_tables[1].id,
         )
     )
-
-
 
 table4link=aws.ec2.RouteTableAssociation(
         "table4link",
@@ -240,8 +235,8 @@ mynacls=aws.ec2.NetworkAcl(
                rule_no=300
                ),
            aws.ec2.NetworkAclIngressArgs(
-               from_port=5432,
-               to_port=5432,
+               from_port=3306,
+               to_port=3306,
                protocol="tcp", 
                cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
                icmp_code=0,
@@ -258,7 +253,7 @@ mynacls=aws.ec2.NetworkAcl(
                icmp_type=0,
                action="allow",
                rule_no=500
-               ),
+               ),  
            aws.ec2.NetworkAclIngressArgs(
                from_port=0,
                to_port=0,
@@ -312,8 +307,8 @@ mynacls=aws.ec2.NetworkAcl(
                rule_no=300
                 ),
                aws.ec2.NetworkAclEgressArgs(
-               from_port=5432,
-               to_port=5432,
+               from_port=3306,
+               to_port=3306,
                protocol="tcp", 
                cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
                icmp_code=0,
@@ -347,7 +342,6 @@ mynacls=aws.ec2.NetworkAcl(
         }
     )
 )
-
 
 nacls30=aws.ec2.NetworkAclAssociation(
         "nnacls30",
@@ -387,7 +381,6 @@ nacls20=aws.ec2.NetworkAclAssociation(
         )
     )
 
-
 nacls21=aws.ec2.NetworkAclAssociation(
         "nacls21",
         aws.ec2.NetworkAclAssociationArgs(
@@ -408,13 +401,15 @@ eksrole=aws.iam.Role(
                         "Service":"eks.amazonaws.com"
                     },
                     "Action": [
-                        "sts:TagSession",
-                        "sts:AssumeRole"
+                         "sts:AssumeRole",
+                         "sts:TagSession",
+                         
                         ]
                 }
             ]
         })    
 ))
+    
 
 nodesrole=aws.iam.Role(
     "nodesrole",
@@ -434,12 +429,12 @@ nodesrole=aws.iam.Role(
         })
 ))
 
-
 clusterattach1=aws.iam.RolePolicyAttachment(
         "clusterattach1",
         aws.iam.RolePolicyAttachmentArgs(
             role=eksrole.name,
             policy_arn="arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
+          
         )
     )
 
@@ -485,7 +480,6 @@ nodesattach1=aws.iam.RolePolicyAttachment(
         )
     )
 
-
 nodesattach2=aws.iam.RolePolicyAttachment(
         "nodesattach2",
         aws.iam.RolePolicyAttachmentArgs(
@@ -502,92 +496,183 @@ nodesattach3=aws.iam.RolePolicyAttachment(
         )
     )
 
-
-mycluster1=aws.eks.Cluster(
-    "mycluster1",
+myclusterlab=aws.eks.Cluster(
+    "myclusterlab",
     aws.eks.ClusterArgs(
-        name="mycluster1",
+        name="myclusterlab",
+        bootstrap_self_managed_addons=False,
         role_arn=eksrole.arn,
         version="1.31",
-        bootstrap_self_managed_addons=False,
+        compute_config={
+          "enabled": True,
+          "node_pools": ["general-purpose"],
+          "node_role_arn": nodesrole.arn,
+        },
         access_config={
-            "authentication_mode": "API",
+         "authentication_mode": "API_AND_CONFIG_MAP",
+        },
+        storage_config={
+           "block_storage": {
+            "enabled": True,
+        },     
+          },
+        kubernetes_network_config={
+            "elastic_load_balancing": {
+            "enabled": True,
+            },
         },
         tags={
-           
-          "Name" : "mycluster1"   
-            
-        },
-        compute_config={
-        "enabled": True,
-        "node_pools": ["general-purpose"],
-        "node_role_arn": nodesrole.arn,
+          "Name" : "myclusterlab"    
         },
         vpc_config={
         "endpoint_private_access": False,
         "endpoint_public_access": True,
+        "public_access_cidrs": [
+            cfg1.require_secret(key="myips"),
+        ],
         "subnet_ids": [
-            pbsubs[0].id,
-            pbsubs[1].id,
             ndsubs[0].id,
             ndsubs[1].id,
-        ], },
-        storage_config={
-            
-            "block_storage": {
-            "enabled": True,
-        },
-             },
-        kubernetes_network_config={
-           "elastic_load_balancing": {
-            "enabled": True,
-        },  
-            
-        }
+        ],},
     ),
     opts=pulumi.ResourceOptions(
             depends_on=[
-                clusterattach1,
-                clusterattach2,
-                clusterattach3,
-                clusterattach4,
-                clusterattach5
+              clusterattach1,
+              clusterattach2,
+              clusterattach3,
+              clusterattach4,
+              clusterattach5,
             ]
         )
 )
 
-cluster_security_rule1=aws.ec2.SecurityGroupRule(
-    "cluster_security_rule1",
-    aws.ec2.SecurityGroupRuleArgs(
-        from_port=22,
-        to_port=22,
-        cidr_blocks=[cfg1.require_secret(key="myips")],
-        protocol="tcp",
-        security_group_id=mycluster1.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id")),
-        type="ingress"
+
+myentry1=aws.eks.AccessEntry(
+    "myentry1",
+     aws.eks.AccessEntryArgs(
+        cluster_name=myclusterlab.name,
+        principal_arn=cfg1.require_secret(key="principal"),
+        type="STANDARD"
      ),
+     opts=pulumi.ResourceOptions(
+            depends_on=[
+              myclusterlab
+            ]
+        )
 )
 
-cluster_security_rule2=aws.ec2.SecurityGroupRule(
-    "cluster_security_rule2",
-    aws.ec2.SecurityGroupRuleArgs(
-        from_port=80,
-        to_port=80,
-        cidr_blocks=[cfg1.require_secret(key="any-traffic-ipv4")],
-        protocol="tcp",
-        security_group_id=mycluster1.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id")),
-        type="ingress"
-     ),
+entrypolicy1=aws.eks.AccessPolicyAssociation(
+    "entrypolicy1",
+    aws.eks.AccessPolicyAssociationArgs(
+        cluster_name=myclusterlab.name,
+        principal_arn=myentry1.principal_arn,
+        policy_arn="arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy",
+        access_scope={
+            "type" : "cluster",
+        }
+    ),
+    opts=pulumi.ResourceOptions(
+            depends_on=[
+              myclusterlab
+            ]
+        )
 )
 
-cluster_security_rule3=aws.ec2.SecurityGroupRule(
-    "cluster_security_rule3",
-    aws.ec2.SecurityGroupRuleArgs(
-        from_port=443,
-        to_port=443,
-        cidr_blocks=[cfg1.require_secret(key="any-traffic-ipv4")],
-        protocol="tcp",
-        security_group_id=mycluster1.vpc_config.apply( lambda id: id.get(key="cluster_security_group_id")),
-        type="ingress"
-     ),
+entrypolicy2=aws.eks.AccessPolicyAssociation(
+    "entrypolicy2",
+    aws.eks.AccessPolicyAssociationArgs(
+        cluster_name=myclusterlab.name,
+        principal_arn=myentry1.principal_arn,
+        policy_arn="arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy",
+        access_scope={
+          
+           "type" : "cluster",
+
+        }
+    ),
+    opts=pulumi.ResourceOptions(
+            depends_on=[
+              myclusterlab
+            ]
+        )
+)
+
+dbsubnetgrps=aws.rds.SubnetGroup(
+    "dbsubnetgrps",
+    aws.rds.SubnetGroupArgs(
+        name="dbsubnetgrps",
+        subnet_ids=[
+            dbsubs[0].id,
+            dbsubs[1].id,
+        ],
+        tags={
+            "Name": "dbsubnetgrps",
+        }
+    )
+)
+
+dbsecurity=aws.ec2.SecurityGroup(
+    "dbsecurity",
+    aws.ec2.SecurityGroupArgs(
+        name="dbsecurity",
+        description="Security group for database",
+        vpc_id=vpc1.id,
+        ingress=[
+            aws.ec2.SecurityGroupIngressArgs(
+                from_port=3306,
+                to_port=3306,
+                protocol="tcp",
+                security_groups=[
+                    myclusterlab.vpc_config.get("cluster_security_group_id")
+                ],
+                description="Allow MySQL traffic",
+            )
+        ],
+        egress=[
+            aws.ec2.SecurityGroupEgressArgs(
+                from_port=0,
+                to_port=0,
+                protocol="-1",
+                cidr_blocks=[
+                    cfg1.require_secret(key="any-traffic-ipv4"),
+                ],
+                description="Allow all outbound traffic",
+            )
+        ],
+        tags={
+            "Name": "dbsecurity",
+        }
+    )
+)
+
+mydbase=aws.rds.Instance(
+    "mydbase",
+    aws.rds.InstanceArgs(
+        db_name="dbaselab",
+        engine="mysql",
+        engine_version="8.0",
+        instance_class="db.t3.micro",
+        allocated_storage=20,
+        max_allocated_storage=40,
+        username=cfg1.require_secret(key="dbuser"),
+        password=cfg1.require_secret(key="dbpass"),
+        skip_final_snapshot=True,
+        delete_automated_backups=True,
+        deletion_protection=False,
+        allow_major_version_upgrade=True,
+        auto_minor_version_upgrade=True,
+        publicly_accessible=False,
+        apply_immediately=True,
+        maintenance_window="Mon:00:00-Mon:03:00",
+        backup_window="03:00-06:00",
+        backup_retention_period=0,
+        db_subnet_group_name=dbsubnetgrps.name,
+        vpc_security_group_ids=[dbsecurity.id],
+        storage_type="gp3",
+        storage_encrypted=False,
+        tags={
+            "Name": "mydbase",
+        },
+        multi_az=True
+    )
 )
