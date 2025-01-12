@@ -79,10 +79,10 @@ for alldbsub in range(len(dbsubs)):
         )
     )
     
-public_tables=["publictable1" , "publictable2"]
-for allpbtable in range(len(public_tables)):
-    public_tables[allpbtable]=aws.ec2.RouteTable(
-        public_tables[allpbtable],
+
+
+publictable=aws.ec2.RouteTable(
+        "publictable",
         aws.ec2.RouteTableArgs(
             vpc_id=vpc1.id,
             routes=[
@@ -92,7 +92,7 @@ for allpbtable in range(len(public_tables)):
                 ),
             ],
             tags={
-                "Name": public_tables[allpbtable],
+                "Name": "publictable",
             },
         )
     )
@@ -101,7 +101,7 @@ tblink1=aws.ec2.RouteTableAssociation(
         "tblink1",
         aws.ec2.RouteTableAssociationArgs(
             subnet_id=pbsubs[0].id,
-            route_table_id=public_tables[0].id,
+            route_table_id=publictable.id,
         )
     )
 
@@ -109,7 +109,7 @@ tblink2=aws.ec2.RouteTableAssociation(
         "tblink2",
         aws.ec2.RouteTableAssociationArgs(
             subnet_id=pbsubs[1].id,
-            route_table_id=public_tables[1].id,
+            route_table_id=publictable.id,
         )
     )
     
@@ -688,3 +688,6 @@ mydbase=aws.rds.Instance(
             ]
         )
 )
+
+
+pulumi.export("dbendpoint" ,  value=mydbase.endpoint)
