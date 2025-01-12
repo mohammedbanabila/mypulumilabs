@@ -1,6 +1,5 @@
 """An AWS Python Pulumi program"""
-import pulumi , pulumi_aws as aws ,json
-
+import pulumi , pulumi_aws as aws ,json , pulumi_kubernetes as k8s
 cfg1=pulumi.Config()
 vpc1=aws.ec2.Vpc(
     "vpc1",
@@ -38,6 +37,7 @@ for allpbsub in range(len(pbsubs)):
             tags={
                 "Name": pbsubs[allpbsub],
                 "kubernetes.io/role/elb": "1",
+                "kubernetes.io/cluster/myclusterlab" : "shared"
             }
         )
     )
@@ -57,6 +57,7 @@ for allndsub in range(len(ndsubs)):
             tags={
                 "Name": ndsubs[allndsub],
                 "kubernetes.io/role/internal-elb": "1",
+                "kubernetes.io/cluster/myclusterlab" : "shared"
             }
         )
     )
@@ -525,7 +526,7 @@ myclusterlab=aws.eks.Cluster(
           "Name" : "myclusterlab"    
         },
         vpc_config={
-        "endpoint_private_access": False,
+        "endpoint_private_access": True,
         "endpoint_public_access": True,
         "public_access_cidrs": [
             cfg1.require_secret(key="myips"),
@@ -533,7 +534,7 @@ myclusterlab=aws.eks.Cluster(
         "subnet_ids": [
             ndsubs[0].id,
             ndsubs[1].id,
-        ],},
+        ],}
     ),
     opts=pulumi.ResourceOptions(
             depends_on=[
@@ -597,6 +598,7 @@ entrypolicy2=aws.eks.AccessPolicyAssociation(
         )
 )
 
+
 dbsubnetgrps=aws.rds.SubnetGroup(
     "dbsubnetgrps",
     aws.rds.SubnetGroupArgs(
@@ -623,10 +625,10 @@ dbsecurity=aws.ec2.SecurityGroup(
                 to_port=3306,
                 protocol="tcp",
                 security_groups=[
-                    myclusterlab.vpc_config.get("cluster_security_group_id")
+                    myclusterlab.vpc_config.apply( lambda id : id.get(key="cluster_security_group_id"))
                 ],
                 description="Allow MySQL traffic",
-            )
+            ),
         ],
         egress=[
             aws.ec2.SecurityGroupEgressArgs(
@@ -642,7 +644,12 @@ dbsecurity=aws.ec2.SecurityGroup(
         tags={
             "Name": "dbsecurity",
         }
-    )
+    ),
+    opts=pulumi.ResourceOptions(
+            depends_on=[
+              myclusterlab
+            ]
+        )
 )
 
 mydbase=aws.rds.Instance(
@@ -674,5 +681,10 @@ mydbase=aws.rds.Instance(
             "Name": "mydbase",
         },
         multi_az=True
-    )
+    ),
+    opts=pulumi.ResourceOptions(
+            depends_on=[
+              dbsecurity
+            ]
+        )
 )
