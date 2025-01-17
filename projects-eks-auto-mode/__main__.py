@@ -304,174 +304,17 @@ nacls31=aws.ec2.NetworkAclAssociation(
         )
     )   
 
-
-
-nodes_nacls=aws.ec2.NetworkAcl(
-    "nodes_nacls",
-    aws.ec2.NetworkAclArgs(
-        vpc_id=vpc1.id,
-        ingress=[
-           aws.ec2.NetworkAclIngressArgs(
-               from_port=22,
-               to_port=22,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="deny",
-               rule_no=100
-               ),
-           aws.ec2.NetworkAclIngressArgs(
-               from_port=22,
-               to_port=22,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="myips"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=101
-               ),
-            aws.ec2.NetworkAclIngressArgs(
-               from_port=80,
-               to_port=80,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=200
-               ),
-            aws.ec2.NetworkAclIngressArgs(
-               from_port=443,
-               to_port=443,
-               protocol="tcp",
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=300
-               ),
-            aws.ec2.NetworkAclIngressArgs(
-               from_port=3306,
-               to_port=3306,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=400
-                ),
-            aws.ec2.NetworkAclIngressArgs(
-               from_port=1024,
-               to_port=65535,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=500
-               ),  
-           aws.ec2.NetworkAclIngressArgs(
-               from_port=0,
-               to_port=0,
-               protocol="-1", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=600
-               ),
-            ],
-        egress=[
-            aws.ec2.NetworkAclEgressArgs(
-               from_port=22,
-               to_port=22,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="deny",
-               rule_no=100
-                ),
-            aws.ec2.NetworkAclEgressArgs(
-               from_port=22,
-               to_port=22,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="myips"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=101
-                ),
-               aws.ec2.NetworkAclEgressArgs(
-               from_port=80,
-               to_port=80,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=200
-                ),
-               aws.ec2.NetworkAclEgressArgs(
-               from_port=443,
-               to_port=443,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=300
-                ),
-               aws.ec2.NetworkAclEgressArgs(
-               from_port=3306,
-               to_port=3306,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=400
-                ),
-               aws.ec2.NetworkAclEgressArgs(
-               from_port=1024,
-               to_port=65535,
-               protocol="tcp", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=500
-                ),
-               aws.ec2.NetworkAclEgressArgs(
-               from_port=0,
-               to_port=0,
-               protocol="-1", 
-               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
-               icmp_code=0,
-               icmp_type=0,
-               action="allow",
-               rule_no=600
-                ),
-            ],
-        tags={
-            "Name": "nodes_nacls",
-        }
-    )
-)
-
-
 nacls10=aws.ec2.NetworkAclAssociation(
         "nacls10",
         aws.ec2.NetworkAclAssociationArgs(
-            network_acl_id=nodes_nacls.id,
+            network_acl_id=mynacls.id,
             subnet_id=ndsubs[0].id
         )
     )
 nacls11=aws.ec2.NetworkAclAssociation(
         "nacls11",
         aws.ec2.NetworkAclAssociationArgs(
-            network_acl_id=nodes_nacls.id,
+            network_acl_id=mynacls.id,
             subnet_id=ndsubs[1].id
         )
     )   
@@ -656,3 +499,4 @@ entrypolicy1=aws.eks.AccessPolicyAssociation(
             ]
         )
 )
+
