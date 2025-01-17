@@ -1,5 +1,5 @@
 """An AWS Python Pulumi program"""
-import pulumi , pulumi_aws as aws ,json , pulumi_kubernetes as k8s
+import pulumi , pulumi_aws as aws ,json 
 cfg1=pulumi.Config()
 vpc1=aws.ec2.Vpc(
     "vpc1",
@@ -37,7 +37,7 @@ for allpbsub in range(len(pbsubs)):
             tags={
                 "Name": pbsubs[allpbsub],
                 "kubernetes.io/role/elb": "1",
-                "kubernetes.io/cluster/myclusterlab" : "shared"
+                "kubernetes.io/cluster/myclusters" : "owned"
             }
         )
     )
@@ -57,30 +57,11 @@ for allndsub in range(len(ndsubs)):
             tags={
                 "Name": ndsubs[allndsub],
                 "kubernetes.io/role/internal-elb": "1",
-                "kubernetes.io/cluster/myclusterlab" : "shared"
+                "kubernetes.io/cluster/myclusters" : "owned"
             }
         )
     )
     
-dbsubs=["db1","db2"]
-dbcidr1=cfg1.require_secret("cidr5")
-dbcidr2=cfg1.require_secret("cidr6")
-dbcidrs=[dbcidr1,dbcidr2]
-for alldbsub in range(len(dbsubs)):
-    dbsubs[alldbsub]=aws.ec2.Subnet(
-        dbsubs[alldbsub],
-        aws.ec2.SubnetArgs(
-            vpc_id=vpc1.id,
-            cidr_block=dbcidrs[alldbsub],
-            availability_zone=zones[alldbsub],
-            tags={
-                "Name": ndsubs[alldbsub],
-            },
-        )
-    )
-    
-
-
 publictable=aws.ec2.RouteTable(
         "publictable",
         aws.ec2.RouteTableArgs(
@@ -174,22 +155,6 @@ table3link=aws.ec2.RouteTableAssociation(
         )
     )
 
-table4link=aws.ec2.RouteTableAssociation(
-        "table4link",
-    aws.ec2.RouteTableAssociationArgs(
-            subnet_id=dbsubs[0].id,
-            route_table_id=private_tables[0].id,
-        )
-    )
-
-table5link=aws.ec2.RouteTableAssociation(
-        "table5link",
-    aws.ec2.RouteTableAssociationArgs(
-            subnet_id=dbsubs[1].id,
-            route_table_id=private_tables[1].id,
-        )
-    )
-
 mynacls=aws.ec2.NetworkAcl(
     "mynacls",
     aws.ec2.NetworkAclArgs(
@@ -235,7 +200,158 @@ mynacls=aws.ec2.NetworkAcl(
                action="allow",
                rule_no=300
                ),
+            aws.ec2.NetworkAclIngressArgs(
+               from_port=1024,
+               to_port=65535,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=400
+               ),  
            aws.ec2.NetworkAclIngressArgs(
+               from_port=0,
+               to_port=0,
+               protocol="-1", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=500
+               ),
+            ],
+        egress=[
+            aws.ec2.NetworkAclEgressArgs(
+               from_port=22,
+               to_port=22,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="deny",
+               rule_no=100
+                ),
+            aws.ec2.NetworkAclEgressArgs(
+               from_port=22,
+               to_port=22,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="myips"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=101
+                ),
+               aws.ec2.NetworkAclEgressArgs(
+               from_port=80,
+               to_port=80,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=200
+                ),
+               aws.ec2.NetworkAclEgressArgs(
+               from_port=443,
+               to_port=443,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=300
+                ),
+               aws.ec2.NetworkAclEgressArgs(
+               from_port=1024,
+               to_port=65535,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=400
+                ),
+               aws.ec2.NetworkAclEgressArgs(
+               from_port=0,
+               to_port=0,
+               protocol="-1", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=500
+                ),
+            ],
+        tags={
+            "Name": "mynacls",
+        }
+    )
+)
+
+nacls30=aws.ec2.NetworkAclAssociation(
+        "nnacls30",
+        aws.ec2.NetworkAclAssociationArgs(
+            network_acl_id=mynacls.id,
+            subnet_id=pbsubs[0].id
+        )
+    )
+nacls31=aws.ec2.NetworkAclAssociation(
+        "nnacls31",
+        aws.ec2.NetworkAclAssociationArgs(
+            network_acl_id=mynacls.id,
+            subnet_id=pbsubs[1].id
+        )
+    )   
+
+
+
+nodes_nacls=aws.ec2.NetworkAcl(
+    "nodes_nacls",
+    aws.ec2.NetworkAclArgs(
+        vpc_id=vpc1.id,
+        ingress=[
+           aws.ec2.NetworkAclIngressArgs(
+               from_port=22,
+               to_port=22,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="deny",
+               rule_no=100
+               ),
+           aws.ec2.NetworkAclIngressArgs(
+               from_port=22,
+               to_port=22,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="myips"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=101
+               ),
+            aws.ec2.NetworkAclIngressArgs(
+               from_port=80,
+               to_port=80,
+               protocol="tcp", 
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=200
+               ),
+            aws.ec2.NetworkAclIngressArgs(
+               from_port=443,
+               to_port=443,
+               protocol="tcp",
+               cidr_block=cfg1.require_secret(key="any-traffic-ipv4"),
+               icmp_code=0,
+               icmp_type=0,
+               action="allow",
+               rule_no=300
+               ),
+            aws.ec2.NetworkAclIngressArgs(
                from_port=3306,
                to_port=3306,
                protocol="tcp", 
@@ -244,7 +360,7 @@ mynacls=aws.ec2.NetworkAcl(
                icmp_type=0,
                action="allow",
                rule_no=400
-               ),
+                ),
             aws.ec2.NetworkAclIngressArgs(
                from_port=1024,
                to_port=65535,
@@ -339,56 +455,26 @@ mynacls=aws.ec2.NetworkAcl(
                 ),
             ],
         tags={
-            "Name": "mynacls",
+            "Name": "nodes_nacls",
         }
     )
 )
 
-nacls30=aws.ec2.NetworkAclAssociation(
-        "nnacls30",
-        aws.ec2.NetworkAclAssociationArgs(
-            network_acl_id=mynacls.id,
-            subnet_id=pbsubs[0].id
-        )
-    )
-nacls31=aws.ec2.NetworkAclAssociation(
-        "nnacls31",
-        aws.ec2.NetworkAclAssociationArgs(
-            network_acl_id=mynacls.id,
-            subnet_id=pbsubs[1].id
-        )
-    )   
 
 nacls10=aws.ec2.NetworkAclAssociation(
         "nacls10",
         aws.ec2.NetworkAclAssociationArgs(
-            network_acl_id=mynacls.id,
+            network_acl_id=nodes_nacls.id,
             subnet_id=ndsubs[0].id
         )
     )
 nacls11=aws.ec2.NetworkAclAssociation(
         "nacls11",
         aws.ec2.NetworkAclAssociationArgs(
-            network_acl_id=mynacls.id,
+            network_acl_id=nodes_nacls.id,
             subnet_id=ndsubs[1].id
         )
     )   
-
-nacls20=aws.ec2.NetworkAclAssociation(
-        "nacls20",
-        aws.ec2.NetworkAclAssociationArgs(
-            network_acl_id=mynacls.id,
-            subnet_id=dbsubs[0].id
-        )
-    )
-
-nacls21=aws.ec2.NetworkAclAssociation(
-        "nacls21",
-        aws.ec2.NetworkAclAssociationArgs(
-            network_acl_id=mynacls.id,
-            subnet_id=dbsubs[1].id
-        )
-    )
 
 eksrole=aws.iam.Role(
     "eksrole",
@@ -489,18 +575,11 @@ nodesattach2=aws.iam.RolePolicyAttachment(
         )
     )
 
-nodesattach3=aws.iam.RolePolicyAttachment(
-        "nodesattach3",
-        aws.iam.RolePolicyAttachmentArgs(
-            role=nodesrole.name,
-            policy_arn=aws.iam.ManagedPolicy.AMAZON_SSM_MANAGED_EC2_INSTANCE_DEFAULT_POLICY,
-        )
-    )
 
-myclusterlab=aws.eks.Cluster(
-    "myclusterlab",
+myclusters=aws.eks.Cluster(
+    "myclusters",
     aws.eks.ClusterArgs(
-        name="myclusterlab",
+        name="myclusters",
         bootstrap_self_managed_addons=False,
         role_arn=eksrole.arn,
         version="1.31",
@@ -523,10 +602,10 @@ myclusterlab=aws.eks.Cluster(
             },
         },
         tags={
-          "Name" : "myclusterlab"    
+          "Name" : "myclusters"    
         },
         vpc_config={
-        "endpoint_private_access": True,
+        "endpoint_private_access": False,
         "endpoint_public_access": True,
         "public_access_cidrs": [
             cfg1.require_secret(key="myips"),
@@ -547,17 +626,16 @@ myclusterlab=aws.eks.Cluster(
         )
 )
 
-
 myentry1=aws.eks.AccessEntry(
     "myentry1",
      aws.eks.AccessEntryArgs(
-        cluster_name=myclusterlab.name,
+        cluster_name=myclusters.name,
         principal_arn=cfg1.require_secret(key="principal"),
         type="STANDARD"
      ),
      opts=pulumi.ResourceOptions(
             depends_on=[
-              myclusterlab
+              myclusters
             ]
         )
 )
@@ -565,7 +643,7 @@ myentry1=aws.eks.AccessEntry(
 entrypolicy1=aws.eks.AccessPolicyAssociation(
     "entrypolicy1",
     aws.eks.AccessPolicyAssociationArgs(
-        cluster_name=myclusterlab.name,
+        cluster_name=myclusters.name,
         principal_arn=myentry1.principal_arn,
         policy_arn="arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy",
         access_scope={
@@ -574,120 +652,7 @@ entrypolicy1=aws.eks.AccessPolicyAssociation(
     ),
     opts=pulumi.ResourceOptions(
             depends_on=[
-              myclusterlab
+              myclusters
             ]
         )
 )
-
-entrypolicy2=aws.eks.AccessPolicyAssociation(
-    "entrypolicy2",
-    aws.eks.AccessPolicyAssociationArgs(
-        cluster_name=myclusterlab.name,
-        principal_arn=myentry1.principal_arn,
-        policy_arn="arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy",
-        access_scope={
-          
-           "type" : "cluster",
-
-        }
-    ),
-    opts=pulumi.ResourceOptions(
-            depends_on=[
-              myclusterlab
-            ]
-        )
-)
-
-
-dbsubnetgrps=aws.rds.SubnetGroup(
-    "dbsubnetgrps",
-    aws.rds.SubnetGroupArgs(
-        name="dbsubnetgrps",
-        subnet_ids=[
-            dbsubs[0].id,
-            dbsubs[1].id,
-        ],
-        tags={
-            "Name": "dbsubnetgrps",
-        }
-    )
-)
-
-dbsecurity=aws.ec2.SecurityGroup(
-    "dbsecurity",
-    aws.ec2.SecurityGroupArgs(
-        name="dbsecurity",
-        description="Security group for database",
-        vpc_id=vpc1.id,
-        ingress=[
-            aws.ec2.SecurityGroupIngressArgs(
-                from_port=3306,
-                to_port=3306,
-                protocol="tcp",
-                security_groups=[
-                    myclusterlab.vpc_config.apply( lambda id : id.get(key="cluster_security_group_id"))
-                ],
-                description="Allow MySQL traffic",
-            ),
-        ],
-        egress=[
-            aws.ec2.SecurityGroupEgressArgs(
-                from_port=0,
-                to_port=0,
-                protocol="-1",
-                cidr_blocks=[
-                    cfg1.require_secret(key="any-traffic-ipv4"),
-                ],
-                description="Allow all outbound traffic",
-            )
-        ],
-        tags={
-            "Name": "dbsecurity",
-        }
-    ),
-    opts=pulumi.ResourceOptions(
-            depends_on=[
-              myclusterlab
-            ]
-        )
-)
-
-mydbase=aws.rds.Instance(
-    "mydbase",
-    aws.rds.InstanceArgs(
-        db_name="dbaselab",
-        engine="mysql",
-        engine_version="8.0",
-        instance_class="db.t3.micro",
-        allocated_storage=20,
-        max_allocated_storage=40,
-        username=cfg1.require_secret(key="dbuser"),
-        password=cfg1.require_secret(key="dbpass"),
-        skip_final_snapshot=True,
-        delete_automated_backups=True,
-        deletion_protection=False,
-        allow_major_version_upgrade=True,
-        auto_minor_version_upgrade=True,
-        publicly_accessible=False,
-        apply_immediately=True,
-        maintenance_window="Mon:00:00-Mon:03:00",
-        backup_window="03:00-06:00",
-        backup_retention_period=0,
-        db_subnet_group_name=dbsubnetgrps.name,
-        vpc_security_group_ids=[dbsecurity.id],
-        storage_type="gp3",
-        storage_encrypted=False,
-        tags={
-            "Name": "mydbase",
-        },
-        multi_az=True
-    ),
-    opts=pulumi.ResourceOptions(
-            depends_on=[
-              dbsecurity
-            ]
-        )
-)
-
-
-pulumi.export("dbendpoint" ,  value=mydbase.endpoint)
