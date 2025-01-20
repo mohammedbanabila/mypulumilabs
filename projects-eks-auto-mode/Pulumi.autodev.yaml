@@ -1,4 +1,4 @@
 config:
   aws:region: us-east-1
 environment:
-  - projects-eks-auto-mode/auto-modelists
+  - projects-eks-auto-mode/autoenv
