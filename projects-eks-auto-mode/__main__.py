@@ -1,6 +1,8 @@
 """An AWS Python Pulumi program"""
 import pulumi , pulumi_aws as aws ,json 
+
 cfg1=pulumi.Config()
+
 vpc1=aws.ec2.Vpc(
     "vpc1",
     aws.ec2.VpcArgs(
@@ -37,13 +39,12 @@ for allpbsub in range(len(pbsubs)):
             tags={
                 "Name": pbsubs[allpbsub],
                 "kubernetes.io/role/elb": "1",
-                "kubernetes.io/cluster/myclusters" : "owned"
+                "kubernetes.io/cluster/myclusters" : "shared"
             }
         )
     )
 
 ndsubs=["node1","node2"]
-zones=["us-east-1a","us-east-1b"]
 ndcidr1=cfg1.require_secret("cidr3")
 ndcidr2=cfg1.require_secret("cidr4")
 ndcidrs=[ndcidr1,ndcidr2]
@@ -55,12 +56,30 @@ for allndsub in range(len(ndsubs)):
             cidr_block=ndcidrs[allndsub],
             availability_zone=zones[allndsub],
             tags={
-                "Name": ndsubs[allndsub],
                 "kubernetes.io/role/internal-elb": "1",
-                "kubernetes.io/cluster/myclusters" : "owned"
+                "kubernetes.io/cluster/myclusters" : "shared"
             }
         )
     )
+    
+    
+    
+dbsubs=["db1","db2"]
+dbcidr1=cfg1.require_secret("cidr5")
+dbcidr2=cfg1.require_secret("cidr6")
+dbcidrs=[dbcidr1,dbcidr2]
+for alldbsub in range(len(dbsubs)):
+    dbsubs[alldbsub]=aws.ec2.Subnet(
+        dbsubs[alldbsub],
+        aws.ec2.SubnetArgs(
+            vpc_id=vpc1.id,
+            cidr_block=ndcidrs[alldbsub],
+            availability_zone=zones[alldbsub],
+            tags={
+                "Name" : dbsubs[alldbsub],
+            }
+        )
+    )   
     
 publictable=aws.ec2.RouteTable(
         "publictable",
@@ -106,7 +125,7 @@ for alleip in range(len(eips)):
         )
     )
 
-natgws=["nat1", "nat2"]
+natgws=["natgw1", "natgw2"]
 allocates=[eips[0].id , eips[1].id]
 for allnat in range(len(natgws)):
     natgws[allnat]=aws.ec2.NatGateway(
@@ -154,6 +173,25 @@ table3link=aws.ec2.RouteTableAssociation(
             route_table_id=private_tables[1].id,
         )
     )
+
+
+
+table5link=aws.ec2.RouteTableAssociation(
+        "table5link",
+        aws.ec2.RouteTableAssociationArgs(
+            subnet_id=dbsubs[0].id,
+            route_table_id=private_tables[0].id,
+        )
+    )
+
+table6link=aws.ec2.RouteTableAssociation(
+        "table6link",
+        aws.ec2.RouteTableAssociationArgs(
+            subnet_id=dbsubs[1].id,
+            route_table_id=private_tables[1].id,
+        )
+    )
+
 
 mynacls=aws.ec2.NetworkAcl(
     "mynacls",
@@ -290,14 +328,14 @@ mynacls=aws.ec2.NetworkAcl(
 )
 
 nacls30=aws.ec2.NetworkAclAssociation(
-        "nnacls30",
+        "nacls30",
         aws.ec2.NetworkAclAssociationArgs(
             network_acl_id=mynacls.id,
             subnet_id=pbsubs[0].id
         )
     )
 nacls31=aws.ec2.NetworkAclAssociation(
-        "nnacls31",
+        "nacls31",
         aws.ec2.NetworkAclAssociationArgs(
             network_acl_id=mynacls.id,
             subnet_id=pbsubs[1].id
@@ -318,6 +356,22 @@ nacls11=aws.ec2.NetworkAclAssociation(
             subnet_id=ndsubs[1].id
         )
     )   
+
+nacls20=aws.ec2.NetworkAclAssociation(
+        "nacls20",
+        aws.ec2.NetworkAclAssociationArgs(
+            network_acl_id=mynacls.id,
+            subnet_id=dbsubs[0].id
+        )
+    )
+nacls21=aws.ec2.NetworkAclAssociation(
+        "nacls21",
+        aws.ec2.NetworkAclAssociationArgs(
+            network_acl_id=mynacls.id,
+            subnet_id=dbsubs[1].id
+        )
+    ) 
+
 
 eksrole=aws.iam.Role(
     "eksrole",
@@ -500,3 +554,98 @@ entrypolicy1=aws.eks.AccessPolicyAssociation(
         )
 )
 
+
+dbsecurity=aws.ec2.SecurityGroup(
+    "dbsecurity",
+    aws.ec2.SecurityGroupArgs(
+        name="dbsecurity",
+        description="Security group for database",
+        vpc_id=vpc1.id,
+        ingress=[
+            aws.ec2.SecurityGroupIngressArgs(
+                from_port=3306,
+                to_port=3306,
+                protocol="tcp",
+                security_groups=[
+                    myclusters.vpc_config.apply( lambda id : id.get(key="cluster_security_group_id"))
+                ],
+                description="Allow  MySQL Inbound traffic",
+            ),
+        ],
+        egress=[
+            aws.ec2.SecurityGroupEgressArgs(
+                from_port=0,
+                to_port=0,
+                protocol="-1",
+                cidr_blocks=[
+                    cfg1.require_secret(key="any-traffic-ipv4"),
+                ],
+                description="Allow all outbound traffic",
+            )
+        ],
+        tags={
+            "Name": "dbsecurity",
+        }
+    ),
+    opts=pulumi.ResourceOptions(
+            depends_on=[
+             myclusters            
+            ]
+        )
+)
+
+dbsubnetgrps=aws.rds.SubnetGroup(
+    "dbsubnetgrps",
+    aws.rds.SubnetGroupArgs(
+        name="dbsubnetgrps",
+        subnet_ids=[
+            dbsubs[0].id,
+            dbsubs[1].id,
+        ],
+        tags={
+            "Name": "dbsubnetgrps",
+        }
+    )
+)
+
+mydbase=aws.rds.Instance(
+    "mydbase",
+    aws.rds.InstanceArgs(
+        db_name="dbaselab",
+        engine="mysql",
+        engine_version="8.0",
+        instance_class="db.t3.micro",
+        allocated_storage=20,
+        max_allocated_storage=40,
+        username=cfg1.require_secret(key="dbuser"),
+        password=cfg1.require_secret(key="dbpass"),
+        skip_final_snapshot=True,
+        delete_automated_backups=True,
+        deletion_protection=False,
+        allow_major_version_upgrade=True,
+        auto_minor_version_upgrade=True,
+        publicly_accessible=False,
+        apply_immediately=True,
+        maintenance_window="Mon:00:00-Mon:03:00",
+        backup_window="03:00-06:00",
+        backup_retention_period=0,
+        db_subnet_group_name=dbsubnetgrps.name,
+        vpc_security_group_ids=[dbsecurity.id],
+        storage_type="gp3",
+        storage_encrypted=False,
+        tags={
+            "Name": "mydbase",
+        },
+        multi_az=True
+    ),
+    opts=pulumi.ResourceOptions(
+            depends_on=[
+              dbsecurity
+            ]
+        )
+)
+
+
+pulumi.export("dbendpoint" ,  value=mydbase.endpoint)
+pulumi.export("dbname", value=mydbase.db_name)
+pulumi.export("cluster", value=myclusters.id)
