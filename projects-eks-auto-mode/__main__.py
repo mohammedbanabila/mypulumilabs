@@ -319,7 +319,7 @@ outbound_traffic=[
 ]
 
 
-nacllists=["mynacls1" ,  "mynacls2"]
+nacllists=["mynacls1" , "mynacls2"]
 for allnacls in range(len(nacllists)):
     nacllists[allnacls]=aws.ec2.NetworkAcl(
         nacllists[allnacls],
@@ -517,6 +517,8 @@ cluster1=aws.eks.Cluster(
         "subnet_ids": [
             ndsubs[0].id,
             ndsubs[1].id,
+            pbsubs[0].id,
+            pbsubs[1].id,
         ],}
     ),
     opts=pulumi.ResourceOptions(
